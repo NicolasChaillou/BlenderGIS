@@ -203,14 +203,9 @@ class BaseMap(GeoScene):
 		#Stop thread if the request is same as previous
 		#TODO
 
-		if self.srv.srcGridKey == self.grdkey:
-			toDstGrid = False
-		else:
-			toDstGrid = True
-
-		mosaic = self.srv.getImage(self.laykey, bbox, self.zoom, toDstGrid=toDstGrid, outCRS=self.crs)
-
-		return mosaic
+		toDstGrid = self.srv.srcGridKey != self.grdkey
+		return self.srv.getImage(
+		    self.laykey, bbox, self.zoom, toDstGrid=toDstGrid, outCRS=self.crs)
 
 
 	def place(self):
@@ -321,26 +316,21 @@ def drawInfosText(self, context):
 
 
 def drawZoomBox(self, context):
-	if self.zoomBoxMode and not self.zoomBoxDrag:
-		# before selection starts draw infinite cross
-		px, py = self.zb_xmax, self.zb_ymax
-		p1 = (0, py, 0)
-		p2 = (context.area.width, py, 0)
-		p3 = (px, 0, 0)
-		p4 = (px, context.area.height, 0)
-		coords = [p1, p2, p3, p4]
-		shader = gpu.shader.from_builtin('3D_UNIFORM_COLOR')
-		batch = batch_for_shader(shader, 'LINES', {"pos": coords})
-		shader.bind()
-		shader.uniform_float("color", (0, 0, 0, 1))
-		batch.draw(shader)
-
-	elif self.zoomBoxMode and self.zoomBoxDrag:
-		p1 = (self.zb_xmin, self.zb_ymin, 0)
-		p2 = (self.zb_xmin, self.zb_ymax, 0)
-		p3 = (self.zb_xmax, self.zb_ymax, 0)
-		p4 = (self.zb_xmax, self.zb_ymin, 0)
-		coords = [p1, p2, p2, p3, p3, p4, p4, p1]
+	if self.zoomBoxMode:
+		if not self.zoomBoxDrag:
+			# before selection starts draw infinite cross
+			px, py = self.zb_xmax, self.zb_ymax
+			p1 = (0, py, 0)
+			p2 = (context.area.width, py, 0)
+			p3 = (px, 0, 0)
+			p4 = (px, context.area.height, 0)
+			coords = [p1, p2, p3, p4]
+		else:
+			p1 = (self.zb_xmin, self.zb_ymin, 0)
+			p2 = (self.zb_xmin, self.zb_ymax, 0)
+			p3 = (self.zb_xmax, self.zb_ymax, 0)
+			p4 = (self.zb_xmax, self.zb_ymin, 0)
+			coords = [p1, p2, p2, p3, p3, p4, p4, p1]
 		shader = gpu.shader.from_builtin('3D_UNIFORM_COLOR')
 		batch = batch_for_shader(shader, 'LINES', {"pos": coords})
 		shader.bind()
@@ -361,11 +351,8 @@ class VIEW3D_OT_map_start(Operator):
 		return True
 
 	def listSources(self, context):
-		srcItems = []
-		for srckey, src in SOURCES.items():
-			#put each item in a tuple (key, label, tooltip)
-			srcItems.append( (srckey, src['name'], src['description']) )
-		return srcItems
+		return [(srckey, src['name'], src['description'])
+		        for srckey, src in SOURCES.items()]
 
 	def listGrids(self, context):
 		grdItems = []
@@ -380,12 +367,9 @@ class VIEW3D_OT_map_start(Operator):
 		return grdItems
 
 	def listLayers(self, context):
-		layItems = []
 		src = SOURCES[self.src]
-		for laykey, lay in src['layers'].items():
-			#put each item in a tuple (key, label, tooltip)
-			layItems.append( (laykey, lay['name'], lay['description']) )
-		return layItems
+		return [(laykey, lay['name'], lay['description'])
+		        for laykey, lay in src['layers'].items()]
 
 
 	src: EnumProperty(
@@ -470,7 +454,7 @@ class VIEW3D_OT_map_start(Operator):
 			self.report({'ERROR'}, "No imaging library available. ImageIO module was not correctly installed.")
 			return {'CANCELLED'}
 
-		if not context.area.type == 'VIEW_3D':
+		if context.area.type != 'VIEW_3D':
 			self.report({'WARNING'}, "View3D not found, cannot run operator")
 			return {'CANCELLED'}
 

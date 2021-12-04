@@ -67,10 +67,7 @@ import getopt
 TOLERANCE = 1e-9
 BIG_FLOAT = 1e38
 
-if sys.version > '3':
-	PY3 = True
-else:
-	PY3 = False
+PY3 = sys.version > '3'
 
 #------------------------------------------------------------------
 class Context(object):
@@ -98,10 +95,10 @@ class Context(object):
 				inExtentP1, inExtentP2 = self.inExtent(x1,y1), self.inExtent(x2,y2)
 				if inExtentP1 and inExtentP2:
 					clipEdges.append((pt1, pt2))
-				elif inExtentP1 and not inExtentP2:
+				elif inExtentP1:
 					pt2=self.clipLine(x1, y1, equation, leftDir=False)
 					clipEdges.append((pt1, pt2))
-				elif not inExtentP1 and inExtentP2:
+				elif inExtentP2:
 					pt1=self.clipLine(x2, y2, equation, leftDir=True)
 					clipEdges.append((pt1, pt2))
 			else:#infinite line
@@ -132,10 +129,10 @@ class Context(object):
 					inExtentP1, inExtentP2 = self.inExtent(x1,y1), self.inExtent(x2,y2)
 					if inExtentP1 and inExtentP2:
 						clipEdges.append((pt1, pt2))
-					elif inExtentP1 and not inExtentP2:
+					elif inExtentP1:
 						pt2=self.clipLine(x1, y1, equation, leftDir=False)
 						clipEdges.append((pt1, pt2))
-					elif not inExtentP1 and inExtentP2:
+					elif inExtentP2:
 						pt1=self.clipLine(x2, y2, equation, leftDir=True)
 						clipEdges.append((pt1, pt2))
 				else:#infinite line
@@ -203,12 +200,7 @@ class Context(object):
 				intersectPts.append((x2_at_ymax, ymax))
 			#delete duplicate (happens if intersect point is at extent corner)
 			intersectPts=set(intersectPts)
-			#choose target intersect point
-			if leftDir:
-				pt=min(intersectPts)#smaller x value
-			else:
-				pt=max(intersectPts)
-			return pt
+			return min(intersectPts) if leftDir else max(intersectPts)
 
 	def inExtent(self, x, y):
 		xmin, xmax, ymin, ymax = self.extent
@@ -219,7 +211,7 @@ class Context(object):
 		pts=[]
 		#get points list
 		for edge in edges:
-			pts.extend([pt for pt in edge])
+			pts.extend(list(edge))
 		#try to get start & end point
 		try:
 			startPt, endPt = [pt for pt in pts if pts.count(pt)<2]#start and end point aren't duplicate
@@ -296,13 +288,8 @@ class Context(object):
 			print("l %f %f %f" % (edge.a, edge.b, edge.c))
 
 	def outEdge(self,edge):
-		sitenumL = -1
-		if edge.ep[Edge.LE] is not None:
-			sitenumL = edge.ep[Edge.LE].sitenum
-		sitenumR = -1
-		if edge.ep[Edge.RE] is not None:
-			sitenumR = edge.ep[Edge.RE].sitenum
-
+		sitenumL = edge.ep[Edge.LE].sitenum if edge.ep[Edge.LE] is not None else -1
+		sitenumR = edge.ep[Edge.RE].sitenum if edge.ep[Edge.RE] is not None else -1
 		#polygons dict add by CF
 		if edge.reg[0].sitenum not in self.polygons:
 			self.polygons[edge.reg[0].sitenum] = []
@@ -313,11 +300,10 @@ class Context(object):
 
 		self.edges.append((edge.edgenum,sitenumL,sitenumR))
 
-		if(not self.triangulate):
-			if(self.doPrint):
-				print("e %d" % edge.edgenum)
-				print(" %d " % sitenumL)
-				print("%d" % sitenumR)
+		if (not self.triangulate) and self.doPrint:
+			print("e %d" % edge.edgenum)
+			print(" %d " % sitenumL)
+			print("%d" % sitenumR)
 
 #------------------------------------------------------------------
 def voronoi(siteList,context):
@@ -476,16 +462,7 @@ class Site(object):
 		print("Site #%d (%g, %g)" % (self.sitenum,self.x,self.y))
 
 	def __lt__(self,other):
-		if self.y < other.y:
-			return True
-		elif self.y > other.y:
-			return False
-		elif self.x < other.x:
-			return True
-		elif self.x > other.x:
-			return False
-		else:
-			return False
+		return self.y < other.y or self.y <= other.y and self.x < other.x
 
 	def __eq__(self,other):
 		if self.y == other.y and self.x == other.x:
@@ -518,9 +495,7 @@ class Edge(object):
 
 	def setEndpoint(self, lrFlag, site):
 		self.ep[lrFlag] = site
-		if self.ep[Edge.RE - lrFlag] is None:
-			return False
-		return True
+		return self.ep[Edge.RE - lrFlag] is not None
 
 	@staticmethod
 	def bisect(s1,s2):
@@ -538,7 +513,7 @@ class Edge(object):
 		ady = abs(dy)
 
 		# get the slope of the line
-		newedge.c = float(s1.x * dx + s1.y * dy + (dx*dx + dy*dy)*0.5)
+		newedge.c = float(s1.x * dx + s1.y * dy + (dx**2 + dy**2) * 0.5)
 		if adx > ady :
 			# set formula of line, with x fixed to 1
 			newedge.a = 1.0
@@ -578,16 +553,8 @@ class Halfedge(object):
 		print("ystar: ", self.ystar)
 
 	def __lt__(self,other):
-		if self.ystar < other.ystar:
-			return True
-		elif self.ystar > other.ystar:
-			return False
-		elif self.vertex.x < other.vertex.x:
-			return True
-		elif self.vertex.x > other.vertex.x:
-			return False
-		else:
-			return False
+		return (self.ystar < other.ystar
+		        or self.ystar <= other.ystar and self.vertex.x < other.vertex.x)
 
 	def __eq__(self,other):
 		if self.ystar == other.ystar and self.vertex.x == other.vertex.x:
@@ -732,9 +699,7 @@ class EdgeList(object):
 		# Use hash table to get close to desired halfedge
 		bucket = int(((pt.x - self.xmin)/self.deltax * self.hashsize))
 
-		if(bucket < 0):
-			bucket =0;
-
+		bucket = max(bucket, 0)
 		if(bucket >=self.hashsize):
 			bucket = self.hashsize-1
 
@@ -774,7 +739,7 @@ class PriorityQueue(object):
 		self.count = 0
 		self.minidx = 0
 		self.hash = []
-		for i in range(self.hashsize):
+		for _ in range(self.hashsize):
 			self.hash.append(Halfedge())
 
 	def __len__(self):
@@ -806,7 +771,7 @@ class PriorityQueue(object):
 
 	def getBucket(self,he):
 		bucket = int(((he.ystar - self.ymin) / self.deltay) * self.hashsize)
-		if bucket < 0: bucket = 0
+		bucket = max(bucket, 0)
 		if bucket >= self.hashsize: bucket = self.hashsize-1
 		if bucket < self.minidx:  self.minidx = bucket
 		return bucket
@@ -834,8 +799,8 @@ class SiteList(object):
 
 		self.__xmin = min([pt.x for pt in pointList])
 		self.__ymin = min([pt.y for pt in pointList])
-		self.__xmax = max([pt.x for pt in pointList])
-		self.__ymax = max([pt.y for pt in pointList])
+		self.__xmax = max(pt.x for pt in pointList)
+		self.__ymax = max(pt.y for pt in pointList)
 		self.__extent=(self.__xmin, self.__xmax, self.__ymin, self.__ymax)
 
 		for i,pt in enumerate(pointList):
@@ -847,7 +812,8 @@ class SiteList(object):
 		self.__sitenum += 1
 
 	class Iterator(object):
-		def __init__(this,lst):  this.generator = (s for s in lst)
+		def __init__(this,lst):
+			this.generator = iter(lst)
 		def __iter__(this):	  return this
 		def next(this):
 			try:
@@ -909,11 +875,10 @@ def computeVoronoiDiagram(points, xBuff=0, yBuff=0, polygonsOutput=False, format
 	context.setClipBuffer(xBuff, yBuff)
 	if not polygonsOutput:
 		clipEdges=context.getClipEdges()
-		if formatOutput:
-			vertices, edgesIdx = formatEdgesOutput(clipEdges)
-			return vertices, edgesIdx
-		else:
+		if not formatOutput:
 			return clipEdges
+		vertices, edgesIdx = formatEdgesOutput(clipEdges)
+		return vertices, edgesIdx
 	else:
 		clipPolygons=context.getClipPolygons(closePoly)
 		if formatOutput:
@@ -932,9 +897,7 @@ def formatEdgesOutput(edges):
 	#get dict {values:index}
 	valuesIdxDict = dict(zip(pts,range(len(pts))))
 	#get edges index reference
-	edgesIdx=[]
-	for edge in edges:
-		edgesIdx.append([valuesIdxDict[pt] for pt in edge])
+	edgesIdx = [[valuesIdxDict[pt] for pt in edge] for edge in edges]
 	return list(pts), edgesIdx
 
 def formatPolygonsOutput(polygons):
@@ -947,9 +910,10 @@ def formatPolygonsOutput(polygons):
 	#get dict {values:index}
 	valuesIdxDict = dict(zip(pts,range(len(pts))))
 	#get polygons index reference
-	polygonsIdx={}
-	for inPtsIdx, poly in polygons.items():
-		polygonsIdx[inPtsIdx]=[valuesIdxDict[pt] for pt in poly]
+	polygonsIdx = {
+	    inPtsIdx: [valuesIdxDict[pt] for pt in poly]
+	    for inPtsIdx, poly in polygons.items()
+	}
 	return list(pts), polygonsIdx
 
 #------------------------------------------------------------------

@@ -67,7 +67,7 @@ class GeoPackage():
 
 		#check application id
 		app_id = db.execute("PRAGMA application_id").fetchone()
-		if not app_id[0] == 1196437808:
+		if app_id[0] != 1196437808:
 			db.close()
 			return False
 		#quick check of table schema
@@ -202,18 +202,18 @@ class GeoPackage():
 		db.execute(query, ('gpkg_tiles', self.code, self.xmin, self.ymin, self.xmax, self.ymax))
 
 
+		query = """INSERT OR REPLACE INTO gpkg_tile_matrix (
+						table_name, zoom_level,
+						matrix_width, matrix_height,
+						tile_width, tile_height,
+						pixel_x_size, pixel_y_size)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?);"""
 		#Tile matrix of each levels
 		for level, res in enumerate(self.resolutions):
 
 			w = math.ceil( (self.xmax - self.xmin) / (self.tileSize * res) )
 			h = math.ceil( (self.ymax - self.ymin) / (self.tileSize * res) )
 
-			query = """INSERT OR REPLACE INTO gpkg_tile_matrix (
-						table_name, zoom_level,
-						matrix_width, matrix_height,
-						tile_width, tile_height,
-						pixel_x_size, pixel_y_size)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?);"""
 			db.execute(query, ('gpkg_tiles', level, w, h, self.tileSize, self.tileSize, res, res))
 
 
@@ -222,10 +222,7 @@ class GeoPackage():
 
 
 	def hasTile(self, x, y, z):
-		if self.getTile(x ,y, z) is not None:
-			return True
-		else:
-			return False
+		return self.getTile(x ,y, z) is not None
 
 	def getTile(self, x, y, z):
 		'''return tilde_data if tile exists otherwie return None'''

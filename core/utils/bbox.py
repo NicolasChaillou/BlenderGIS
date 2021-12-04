@@ -46,7 +46,7 @@ class BBOX(dict):
 			else:
 				raise ValueError('BBOX() initialization expects 4 or 6 arguments, got %g' % len(args))
 		elif kwargs:
-			if not all( [kw in kwargs for kw in ['xmin', 'ymin', 'xmax', 'ymax']] ):
+			if any(kw not in kwargs for kw in ['xmin', 'ymin', 'xmax', 'ymax']):
 				raise ValueError('invalid keyword arguments')
 			self.xmin, self.xmax = kwargs['xmin'], kwargs['xmax']
 			self.ymin, self.ymax = kwargs['ymin'], kwargs['ymax']
@@ -118,10 +118,7 @@ class BBOX(dict):
 	@property
 	def hasZ(self):
 		'''Check if this bbox is in 3D'''
-		if hasattr(self, 'zmin') and hasattr(self, 'zmax'):
-			return True
-		else:
-			return False
+		return bool(hasattr(self, 'zmin') and hasattr(self, 'zmax'))
 
 	def to2D(self):
 		'''Cast 3d bbox to 2d >> discard zmin and zmax values'''
@@ -153,22 +150,18 @@ class BBOX(dict):
 	def overlap(self, bb):
 		'''Test if 2 bbox objects have intersection areas (in 2D only)'''
 		def test_overlap(a_min, a_max, b_min, b_max):
-			return not ((a_min > b_max) or (b_min > a_max))
+			return a_min <= b_max and b_min <= a_max
 		return test_overlap(self.xmin, self.xmax, bb.xmin, bb.xmax) and test_overlap(self.ymin, self.ymax, bb.ymin, bb.ymax)
 
 	def isWithin(self, bb):
 		'''Test if this bbox is within another bbox'''
-		if bb.xmin <= self.xmin and bb.xmax >= self.xmax and bb.ymin <= self.ymin and bb.ymax >= self.ymax:
-			return True
-		else:
-			return False
+		return (bb.xmin <= self.xmin and bb.xmax >= self.xmax and bb.ymin <= self.ymin
+		        and bb.ymax >= self.ymax)
 
 	def contains(self, bb):
 		'''Test if this bbox contains another bbox'''
-		if bb.xmin > self.xmin and bb.xmax < self.xmax and bb.ymin > self.ymin and bb.ymax < self.ymax:
-			return True
-		else:
-			return False
+		return (bb.xmin > self.xmin and bb.xmax < self.xmax and bb.ymin > self.ymin
+		        and bb.ymax < self.ymax)
 
 	def __add__(self, bb):
 		'''Use '+' operator to perform the union of 2 bbox'''

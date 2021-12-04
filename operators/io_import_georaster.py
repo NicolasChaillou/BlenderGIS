@@ -60,12 +60,9 @@ class IMPORTGIS_OT_georaster(Operator, ImportHelper):
 	bl_options = {"UNDO"}
 
 	def listObjects(self, context):
-		#Function used to update the objects list (obj_list) used by the dropdown box.
-		objs = [] #list containing tuples of each object
-		for index, object in enumerate(bpy.context.scene.objects): #iterate over all objects
-			if object.type == 'MESH':
-				objs.append((str(index), object.name, "Object named " +object.name)) #put each object in a tuple (key, label, tooltip) and add this to the objects list
-		return objs
+		return [(str(index), object.name, "Object named " + object.name)
+		        for index, object in enumerate(bpy.context.scene.objects)
+		        if object.type == 'MESH']
 
 	# ImportHelper class properties
 	filter_glob: StringProperty(
@@ -149,12 +146,6 @@ class IMPORTGIS_OT_georaster(Operator, ImportHelper):
 		layout.prop(self, 'importMode')
 		scn = bpy.context.scene
 		geoscn = GeoScene(scn)
-		#
-		if self.importMode == 'PLANE':
-			pass
-		#
-		if self.importMode == 'BKG':
-			pass
 		#
 		if self.importMode == 'MESH':
 			if geoscn.isGeoref and len(self.objectsLst) > 0:
@@ -416,12 +407,13 @@ class IMPORTGIS_OT_georaster(Operator, ImportHelper):
 			if previousUVmapIdx != -1:
 				mesh.uv_layers.active_index = previousUVmapIdx
 			#Make subdivision
-			if self.subdivision == 'subsurf':#Add subsurf modifier
-				if not 'SUBSURF' in [mod.type for mod in obj.modifiers]:
-					subsurf = obj.modifiers.new('DEM', type='SUBSURF')
-					subsurf.subdivision_type = 'SIMPLE'
-					subsurf.levels = 6
-					subsurf.render_levels = 6
+			if self.subdivision == 'subsurf' and not 'SUBSURF' in [
+			    mod.type for mod in obj.modifiers
+			]:
+				subsurf = obj.modifiers.new('DEM', type='SUBSURF')
+				subsurf.subdivision_type = 'SIMPLE'
+				subsurf.levels = 6
+				subsurf.render_levels = 6
 			#Set displacer
 			dsp = setDisplacer(obj, grid, uvTxtLayer, interpolation=self.demInterpolation)
 

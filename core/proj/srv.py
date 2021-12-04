@@ -97,7 +97,7 @@ class EPSGIO():
 		data = [','.join( [str(round(v, precision)) for v in p] ) for p in points ]
 		part, parts = [], []
 		for i,p in enumerate(data):
-			l = sum([len(p) for p in part]) + len(';'*len(part))
+			l = sum(len(p) for p in part) + len(';'*len(part))
 			if l + len(p) < 4000: #limit is 4094
 				part.append(p)
 			else:
@@ -142,8 +142,7 @@ class EPSGIO():
 		url = url.replace("{CODE}", str(epsg))
 		log.debug(url)
 		rq = Request(url, headers={'User-Agent': USER_AGENT})
-		wkt = urlopen(rq, timeout=DEFAULT_TIMEOUT).read().decode('utf8')
-		return wkt
+		return urlopen(rq, timeout=DEFAULT_TIMEOUT).read().decode('utf8')
 
 
 

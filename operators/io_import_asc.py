@@ -100,10 +100,7 @@ class IMPORTGIS_OT_ascii_grid(Operator, ImportHelper):
         512MB file ~3 seconds.
         """
         with open(filename) as f:
-            lines = 0
-            for _ in f:
-                lines += 1
-            return lines
+            return sum(1 for _ in f)
 
     def read_row_newlines(self, f, ncols):
         """
@@ -188,7 +185,7 @@ class IMPORTGIS_OT_ascii_grid(Operator, ImportHelper):
         f = open(filename, 'r')
         meta_re = re.compile('^([^\s]+)\s+([^\s]+)$')  # 'abc  123'
         meta = {}
-        for i in range(6):
+        for _ in range(6):
             line = f.readline()
             m = meta_re.match(line)
             if m:
@@ -266,8 +263,8 @@ class IMPORTGIS_OT_ascii_grid(Operator, ImportHelper):
 
         if self.importMode == 'MESH':
             step_ncols = math.ceil(ncols / step)
-            for r in range(0, math.ceil(nrows / step) - 1):
-                for c in range(0, step_ncols - 1):
+            for r in range(math.ceil(nrows / step) - 1):
+                for c in range(step_ncols - 1):
                     v1 = index
                     v2 = v1 + step_ncols
                     v3 = v2 + 1

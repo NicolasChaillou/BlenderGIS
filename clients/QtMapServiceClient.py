@@ -36,17 +36,15 @@ def getShpExtent(pathShp):
 	if len(shapes) != 1:
 		return
 	else:
-		extent = shapes[0].bbox #xmin, ymin, xmax, ymax
-		return extent
+		return shapes[0].bbox
 
 def getKmlExtent(kmlFile, crs2):
 
 	def formatCoor(coorText):
 		coorText = coorText.strip()
-		coordinates = []
-		for elem in str(coorText).split(" "):
-			coordinates.append(tuple(map(float, elem.split(","))))
-		return coordinates
+		return [
+		    tuple(map(float, elem.split(","))) for elem in str(coorText).split(" ")
+		]
 
 	def namespace(element):
 		m = re.match('\{.*\}', element.tag)
@@ -125,8 +123,7 @@ class QtMapServiceClient(QtGui.QMainWindow, mainForm):
 	@property
 	def rq(self):
 		if self.extent is not None and self.zoom is not None:
-			rq = self.provider.srcTms.bboxRequest(self.extent, self.zoom)
-			return rq
+			return self.provider.srcTms.bboxRequest(self.extent, self.zoom)
 
 
 	def uiUpdateMaskOption(self):
@@ -195,9 +192,7 @@ class QtMapServiceClient(QtGui.QMainWindow, mainForm):
 
 	def updateExtent(self):
 		path = self.inVectorFile.text()
-		if not os.path.exists(path):
-			pass
-		else:
+		if os.path.exists(path):
 			ext = path[-3:]
 			if ext == 'shp':
 				self.extent = getShpExtent(path) #xmin, ymin, xmax, ymax
@@ -266,10 +261,7 @@ class QtMapServiceClient(QtGui.QMainWindow, mainForm):
 		#Start map service
 		self.btOkMosaic.setEnabled(False)
 
-		if self.chkReproj:
-			outCRS = self.outProj
-		else:
-			outCRS = None
+		outCRS = self.outProj if self.chkReproj else None
 		outFile = outFolder + os.sep + nameTemplate + '.tif'
 
 		seedOnly = self.chkSeedCache.isChecked()
@@ -296,10 +288,7 @@ class QtMapServiceClient(QtGui.QMainWindow, mainForm):
 
 	def uiSendQuestion(self, titre, msg):
 		choice = QtGui.QMessageBox.question(self, titre, msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-		if choice == QtGui.QMessageBox.Yes:
-			return True
-		else:
-			return False
+		return choice == QtGui.QMessageBox.Yes
 
 	def updateUi(self):
 		self.btOkMosaic.setEnabled(True)

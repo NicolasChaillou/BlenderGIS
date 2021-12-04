@@ -63,20 +63,17 @@ class SRS():
 			self.proj4 = '+init=epsg:'+str(self.code)
 			#note : 'epsg' must be lower case to be compatible with gdal osr
 
-		#case 2 crs is in the form AUTH:CODE
 		elif ':' in crs:
 			self.auth, self.code = crs.split(':')
-			if self.code.isdigit(): #what about non integer code ??? (IGNF:LAMB93)
-				self.code = int(self.code)
-				if self.auth.startswith('+init='):
-					_, self.auth = self.auth.split('=')
-				self.auth = self.auth.upper()
-				self.proj4 = '+init=' + self.auth.lower() + ':' + str(self.code)
-			else:
+			if not self.code.isdigit():
 				raise ValueError('Invalid CRS : '+crs)
 
-		#case 3 : crs is proj4 string
-		elif all([param.startswith('+') for param in crs.split(' ') if param]):
+			self.code = int(self.code)
+			if self.auth.startswith('+init='):
+				_, self.auth = self.auth.split('=')
+			self.auth = self.auth.upper()
+			self.proj4 = '+init=' + self.auth.lower() + ':' + str(self.code)
+		elif all(param.startswith('+') for param in crs.split(' ') if param):
 			self.auth = None
 			self.code = None
 			self.proj4 = crs
@@ -166,11 +163,10 @@ class SRS():
 			raise ImportError('PYPROJ not available')
 		if self.isSRID:
 			return pyproj.Proj(self.SRID)
-		else:
-			try:
-				return pyproj.Proj(self.proj4)
-			except Exception as e:
-				raise ValueError('Cannot initialize pyproj object for projection {}. Error : {}'.format(self.proj4, e))
+		try:
+			return pyproj.Proj(self.proj4)
+		except Exception as e:
+			raise ValueError('Cannot initialize pyproj object for projection {}. Error : {}'.format(self.proj4, e))
 
 
 	def loadProj4(self):
@@ -186,8 +182,6 @@ class SRS():
 				except ValueError:
 					pass
 				dc[k] = v
-			else:
-				pass
 		return dc
 
 	@property

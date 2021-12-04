@@ -48,43 +48,38 @@ class RECLASS_PG_color(PropertyGroup):
 	#Define update function for FloatProperty
 	def updStop(item, context):
 		#first arg is the container of the prop to update, here a customItem
-		if context.space_data is not None:
-			if context.space_data.type == 'NODE_EDITOR':
-				v = item.val
-				i = item.idx
-				node = context.active_node
-				cr = node.color_ramp
-				stops = cr.elements
-				newPos = scale(v, inMin, inMax, 0, 1)
+		if context.space_data is None:
+			return
+		if context.space_data.type == 'NODE_EDITOR':
+			v = item.val
+			i = item.idx
+			node = context.active_node
+			cr = node.color_ramp
+			stops = cr.elements
+			newPos = scale(v, inMin, inMax, 0, 1)
 				#limit move between previous and next stops
-				if i+1 == len(stops):#this is the last stop
-					nextPos = 1
-				else:
-					nextPos = stops[i+1].position
-				if i == 0:#this is the first stop
-					prevPos = 0
-				else:
-					prevPos = stops[i-1].position
-				#
-				if newPos > nextPos:
-					stops[i].position = nextPos
-					item.val = scale(nextPos, 0, 1, inMin, inMax)
-				elif newPos < prevPos:
-					stops[i].position = prevPos
-					item.val = scale(prevPos, 0, 1, inMin, inMax)
-				else:
-					stops[i].position = newPos
+			nextPos = 1 if i+1 == len(stops) else stops[i+1].position
+			prevPos = 0 if i == 0 else stops[i-1].position
+			#
+			if newPos > nextPos:
+				stops[i].position = nextPos
+				item.val = scale(nextPos, 0, 1, inMin, inMax)
+			elif newPos < prevPos:
+				stops[i].position = prevPos
+				item.val = scale(prevPos, 0, 1, inMin, inMax)
+			else:
+				stops[i].position = newPos
 
 	#Define update function for color property
 	def updColor(item, context):
-		if context.space_data is not None:
-			if context.space_data.type == 'NODE_EDITOR':
-				color = item.color
-				i = item.idx
-				node = context.active_node
-				cr = node.color_ramp
-				stops = cr.elements
-				stops[i].color = color
+		if (context.space_data is not None
+		    and context.space_data.type == 'NODE_EDITOR'):
+			color = item.color
+			i = item.idx
+			node = context.active_node
+			cr = node.color_ramp
+			stops = cr.elements
+			stops[i].color = color
 
 	#Properties in the group
 	idx: IntProperty()
@@ -96,16 +91,16 @@ class RECLASS_PG_color(PropertyGroup):
 #Make function to populate collection
 def populateList(colorRampNode):
 	setBounds()
-	if colorRampNode is not None:
-		if colorRampNode.bl_idname == 'ShaderNodeValToRGB':
-			bpy.context.scene.uiListCollec.clear()
-			cr = colorRampNode.color_ramp
-			for i, stop in enumerate(cr.elements):
-				v = scale(stop.position, 0, 1, inMin, inMax, )
-				item = bpy.context.scene.uiListCollec.add()
-				item.idx = i #warn. : assign idx before val because idx is used in property update function
-				item.val = v #warn. : causes exec. of property update function
-				item.color = stop.color
+	if (colorRampNode is not None
+	    and colorRampNode.bl_idname == 'ShaderNodeValToRGB'):
+		bpy.context.scene.uiListCollec.clear()
+		cr = colorRampNode.color_ramp
+		for i, stop in enumerate(cr.elements):
+			v = scale(stop.position, 0, 1, inMin, inMax, )
+			item = bpy.context.scene.uiListCollec.add()
+			item.idx = i #warn. : assign idx before val because idx is used in property update function
+			item.val = v #warn. : causes exec. of property update function
+			item.color = stop.color
 
 
 
@@ -208,10 +203,10 @@ class RECLASS_UL_stops(UIList):
 		item is the current drawn item of the collection (in our case a propertyGroup "customItem")
 		index is index of the current item in the collection (optional)
 		'''
-		scn = bpy.context.scene
-		mode = scn.analysisMode
 		self.use_filter_show = False
 		if self.layout_type in {'DEFAULT', 'COMPACT'}:
+			scn = bpy.context.scene
+			mode = scn.analysisMode
 			if mode == 'ASPECT':
 				aspectLabels = self.getAspectLabels()
 				split = layout.split(factor=0.2)
@@ -219,16 +214,13 @@ class RECLASS_UL_stops(UIList):
 					split.label(text=aspectLabels[item.idx])
 				else:
 					split.label(text=str(item.idx+1))
-				split = split.split(factor=0.4)
-				split.prop(item, "color", text="")
-				split.prop(item, "val", text="")
 			else:
 				split = layout.split(factor=0.2)
 				#split.label(text=str(index))
 				split.label(text=str(item.idx+1))
-				split = split.split(factor=0.4)
-				split.prop(item, "color", text="")
-				split.prop(item, "val", text="")
+			split = split.split(factor=0.4)
+			split.prop(item, "color", text="")
+			split.prop(item, "val", text="")
 		elif self.layout_type in {'GRID'}:
 			layout.alignment = 'CENTER'
 
@@ -244,39 +236,38 @@ class RECLASS_PT_reclassify(Panel):
 
 	def draw(self, context):
 		node = context.active_node
-		if node is not None:
-			if node.bl_idname == 'ShaderNodeValToRGB':
-				layout = self.layout
-				scn = context.scene
-				layout.prop(scn, "analysisMode")
-				row = layout.row()
-				#Draw ui list with template_list function
-				row.template_list("RECLASS_UL_stops", "", scn, "uiListCollec", scn, "uiListIndex", rows=10)
-				#Draw side tools
-				col = row.column(align=True)
-				col.operator("reclass.list_add", text="", icon='ADD')
-				col.operator("reclass.list_rm", text="", icon='REMOVE')
-				col.operator("reclass.list_clear", text="", icon='FILE_PARENT')
-				col.separator()
-				col.operator("reclass.list_refresh", text="", icon='FILE_REFRESH')
-				col.separator()
-				col.operator("reclass.switch_interpolation", text="", icon='SMOOTHCURVE')
-				col.operator("reclass.flip", text="", icon='ARROW_LEFTRIGHT')
-				col.operator("reclass.quick_gradient", text="", icon="COLOR")
-				col.operator("reclass.svg_gradient", text="", icon="GROUP_VCOL")
-				col.operator("reclass.export_svg", text="", icon="FORWARD")
-				col.separator()
-				col.operator("reclass.auto", text="", icon='FULLSCREEN_ENTER')
-				##col.separator()
-				##col.operator("reclass.settings", text="", icon='PREFERENCES')
-				#Draw infos
-				#row = layout.row()
-				#row.label(text=scn.collection.objects.active.name)
-				row = layout.row()
-				row.label(text="min = " + str(round(inMin,2)))
-				row.label(text="max = " + str(round(inMax,2)))
-				row = layout.row()
-				row.label(text="delta = " + str(round(inMax-inMin,2)))
+		if node is not None and node.bl_idname == 'ShaderNodeValToRGB':
+			layout = self.layout
+			scn = context.scene
+			layout.prop(scn, "analysisMode")
+			row = layout.row()
+			#Draw ui list with template_list function
+			row.template_list("RECLASS_UL_stops", "", scn, "uiListCollec", scn, "uiListIndex", rows=10)
+			#Draw side tools
+			col = row.column(align=True)
+			col.operator("reclass.list_add", text="", icon='ADD')
+			col.operator("reclass.list_rm", text="", icon='REMOVE')
+			col.operator("reclass.list_clear", text="", icon='FILE_PARENT')
+			col.separator()
+			col.operator("reclass.list_refresh", text="", icon='FILE_REFRESH')
+			col.separator()
+			col.operator("reclass.switch_interpolation", text="", icon='SMOOTHCURVE')
+			col.operator("reclass.flip", text="", icon='ARROW_LEFTRIGHT')
+			col.operator("reclass.quick_gradient", text="", icon="COLOR")
+			col.operator("reclass.svg_gradient", text="", icon="GROUP_VCOL")
+			col.operator("reclass.export_svg", text="", icon="FORWARD")
+			col.separator()
+			col.operator("reclass.auto", text="", icon='FULLSCREEN_ENTER')
+			##col.separator()
+			##col.operator("reclass.settings", text="", icon='PREFERENCES')
+			#Draw infos
+			#row = layout.row()
+			#row.label(text=scn.collection.objects.active.name)
+			row = layout.row()
+			row.label(text="min = " + str(round(inMin,2)))
+			row.label(text="max = " + str(round(inMax,2)))
+			row = layout.row()
+			row.label(text="delta = " + str(round(inMax-inMin,2)))
 
 
 #Make Operators to manage ui list
@@ -291,10 +282,7 @@ class RECLASS_OT_switch_interpolation(Operator):
 		node = context.active_node
 		cr = node.color_ramp
 		cr.color_mode = 'RGB'
-		if cr.interpolation != 'CONSTANT':
-			cr.interpolation = 'CONSTANT'
-		else:
-			cr.interpolation = 'LINEAR'
+		cr.interpolation = 'CONSTANT' if cr.interpolation != 'CONSTANT' else 'LINEAR'
 		return {'FINISHED'}
 
 class RECLASS_OT_flip(Operator):
@@ -533,7 +521,7 @@ class RECLASS_OT_auto(Operator):
 				return {'CANCELLED'}
 			clearRamp(stops, startColor, endColor)
 			val = inMin
-			for i in range(nbClasses-1):
+			for _ in range(nbClasses-1):
 				val += interval
 				position = scale(val, inMin, inMax, 0, 1)
 				stop = stops.new(position)
@@ -550,7 +538,7 @@ class RECLASS_OT_auto(Operator):
 			clearRamp(stops, startColor, endColor)
 			interval = delta/nbClasses
 			val = inMin
-			for i in range(nbClasses-1):
+			for _ in range(nbClasses-1):
 				val += interval
 				position = scale(val, inMin, inMax, 0, 1)
 				stop = stops.new(position)
@@ -572,10 +560,7 @@ class RECLASS_OT_auto(Operator):
 			#add intermediates stops
 			val = 0
 			for i in range(nbClasses-2):
-				if i == 0:
-					val += offset
-				else:
-					val += interval
+				val += offset if i == 0 else interval
 				position = scale(val, inMin, inMax, 0, 1)
 				stop = stops.new(position)
 			#add last
@@ -677,7 +662,7 @@ class RECLASS_OT_quick_gradient(Operator):
 			delta = 1
 		offset = delta/(self.nbColors-1)
 		position = 0
-		for i in range(self.nbColors):
+		for _ in range(self.nbColors):
 			item = bpy.context.scene.colorRampPreview.add()
 			item.color = cr.evaluate(position)
 			position += offset
@@ -690,7 +675,7 @@ class RECLASS_OT_quick_gradient(Operator):
 		if nb == self.nbColors:
 			return
 		delta = abs(self.nbColors - nb)
-		for i in range(delta):
+		for _ in range(delta):
 			if self.nbColors > nb:
 				item = colorItems.add()
 				item.color = colorItems[-2].color
@@ -730,7 +715,7 @@ class RECLASS_OT_quick_gradient(Operator):
 		nbColors = len(colorList)
 		offset = 1/(nbColors-1)
 		position = 0
-		for i, item in enumerate(colorList):
+		for item in colorList:
 			color = Color(list(item.color), 'rgb')
 			colorRamp.addStop(round(position,4), color)
 			position += offset
@@ -746,10 +731,7 @@ class RECLASS_OT_quick_gradient(Operator):
 		for stop in stops:
 			stop.color = colorRamp.evaluate(stop.position, self.colorSpace, self.method).rgba
 		#
-		if self.colorSpace == 'HSV':
-			cr.color_mode = 'HSV'
-		else:
-			cr.color_mode = 'RGB'
+		cr.color_mode = 'HSV' if self.colorSpace == 'HSV' else 'RGB'
 		#refresh
 		populateList(node)
 		return {'FINISHED'}
@@ -774,11 +756,8 @@ class RECLASS_OT_svg_gradient(Operator):
 	bl_label = "Define colors gradient with presets"
 
 	def listSVG(self, context):
-		#Function used to update the gradient list used by the dropdown box.
-		svgs = [] #list containing tuples of each object
-		for index, svg in enumerate(svgFiles): #iterate over all objects
-			svgs.append((str(index), os.path.splitext(svg)[0], svgGradientFolder + svg)) #tuple (key, label, tooltip)
-		return svgs
+		return [(str(index), os.path.splitext(svg)[0], svgGradientFolder + svg)
+		        for index, svg in enumerate(svgFiles)]
 
 	def updatePreview(self, context):
 		if len(self.colorPresets) == 0:
@@ -822,7 +801,7 @@ class RECLASS_OT_svg_gradient(Operator):
 		#clear collection
 		context.scene.colorRampPreview.clear()
 		#feed collection
-		for i in range(colorPreviewRange):
+		for _ in range(colorPreviewRange):
 			bpy.context.scene.colorRampPreview.add()
 		#update colors preview
 		self.updatePreview(context)
@@ -863,10 +842,7 @@ class RECLASS_OT_svg_gradient(Operator):
 		for stop in stops:
 			stop.color = colorRamp.evaluate(stop.position, self.colorSpace, self.method).rgba
 		#
-		if self.colorSpace == 'HSV':
-			cr.color_mode = 'HSV'
-		else:
-			cr.color_mode = 'RGB'
+		cr.color_mode = 'HSV' if self.colorSpace == 'HSV' else 'RGB'
 		#refresh
 		populateList(node)
 		return {'FINISHED'}

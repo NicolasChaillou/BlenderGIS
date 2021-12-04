@@ -29,8 +29,7 @@ PKG, SUBPKG = __package__.split('.', maxsplit=1)
 #https://developer.blender.org/T38489
 def getTags():
 	prefs = bpy.context.preferences.addons[PKG].preferences
-	tags = json.loads(prefs.osmTagsJson)
-	return tags
+	return json.loads(prefs.osmTagsJson)
 
 #Global variable that will be seed by getTags() at each operator invoke
 #then callback of dynamic enum will use this global variable
@@ -106,14 +105,7 @@ class OSM_IMPORT():
 	"""Import from Open Street Map"""
 
 	def enumTags(self, context):
-		items = []
-		##prefs = context.preferences.addons[PKG].preferences
-		##osmTags = json.loads(prefs.osmTagsJson)
-		#we need to use a global variable as workaround to enum callback bug (T48873, T38489)
-		for tag in OSMTAGS:
-			#put each item in a tuple (key, label, tooltip)
-			items.append( (tag, tag, tag) )
-		return items
+		return [(tag, tag, tag) for tag in OSMTAGS]
 
 	filterTags: EnumProperty(
 			name = "Tags",
@@ -135,12 +127,9 @@ class OSM_IMPORT():
 
 	# Elevation object
 	def listObjects(self, context):
-		objs = []
-		for index, object in enumerate(bpy.context.scene.objects):
-			if object.type == 'MESH':
-				#put each object in a tuple (key, label, tooltip) and add this to the objects list
-				objs.append((str(index), object.name, "Object named " + object.name))
-		return objs
+		return [(str(index), object.name, "Object named " + object.name)
+		        for index, object in enumerate(bpy.context.scene.objects)
+		        if object.type == 'MESH']
 
 	objElevLst: EnumProperty(
 		name="Elev. object",
@@ -281,8 +270,7 @@ class OSM_IMPORT():
 
 					if offset is None:
 						minH = self.defaultHeight - self.randomHeightThreshold
-						if minH < 0 :
-							minH = 0
+						minH = max(minH, 0)
 						maxH = self.defaultHeight + self.randomHeightThreshold
 						offset = random.randint(minH, maxH)
 
@@ -298,7 +286,7 @@ class OSM_IMPORT():
 					verts = faces['faces'][0].verts
 					if self.useElevObj:
 						#Making flat roof
-						z = max([v.co.z for v in verts]) + offset #get max z coord
+						z = max(v.co.z for v in verts) + offset
 						for v in verts:
 							v.co.z = z
 					else:
@@ -328,10 +316,7 @@ class OSM_IMPORT():
 					obj[key] = tags[key]
 
 				#Put object in right collection
-				if self.filterTags:
-					tagsList = self.filterTags
-				else:
-					tagsList = OSMTAGS
+				tagsList = self.filterTags or OSMTAGS
 				if any(tag in tagsList for tag in tags):
 					for k in tagsList:
 						if k in tags:

@@ -69,10 +69,9 @@ def get_remote_file(fname, directory=None, force_download=False):
                 ftime = time.gmtime(op.getctime(filename))
                 if ftime >= ntime:
                     return filename
-                else:
-                    print('File older than %s, updating...' % force_download)
-                    break
-    
+                print('File older than %s, updating...' % force_download)
+                break
+
     # If we get here, we're going to try to download the file
     if os.getenv('IMAGEIO_NO_INTERNET', '').lower() in ('1', 'true', 'yes'):
         raise InternetNotAllowedError('Will not download resource from the '
@@ -84,19 +83,14 @@ def get_remote_file(fname, directory=None, force_download=False):
         os.makedirs(op.abspath(op.dirname(filename)))
     # let's go get the file
     if os.getenv('CONTINUOUS_INTEGRATION', False):  # pragma: no cover
-        # On Travis, we retry a few times ...
-        for i in range(2):
+        for _ in range(2):
             try:
                 _fetch_file(url, filename)
                 return filename
             except IOError:
                 time.sleep(0.5)
-        else:
-            _fetch_file(url, filename)
-            return filename
-    else:  # pragma: no cover
-        _fetch_file(url, filename)
-        return filename
+    _fetch_file(url, filename)
+    return filename
 
 
 def _fetch_file(url, file_name, print_destination=True):
@@ -116,10 +110,10 @@ def _fetch_file(url, file_name, print_destination=True):
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
-    
+
     print('Imageio: %r was not found on your computer; '
           'downloading it now.' % os.path.basename(file_name))
-    
+
     temp_file_name = file_name + ".part"
     local_file = None
     initial_size = 0
@@ -145,9 +139,8 @@ def _fetch_file(url, file_name, print_destination=True):
             errors.append(e)
             print('Error while fetching file: %s.' % str(e))
         finally:
-            if local_file is not None:
-                if not local_file.closed:
-                    local_file.close()
+            if local_file is not None and not local_file.closed:
+                local_file.close()
     else:
         raise IOError('Unable to download %r. Perhaps there is a no internet '
                       'connection? If there is, please report this problem.' %
@@ -201,12 +194,12 @@ def _chunk_write(chunk, local_file, progress):
 def _sizeof_fmt(num):
     """Turn number of bytes into human-readable str"""
     units = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB']
-    decimals = [0, 0, 1, 2, 2, 2]
     """Human friendly file size"""
     if num > 1:
         exponent = min(int(log(num, 1024)), len(units) - 1)
         quotient = float(num) / 1024 ** exponent
         unit = units[exponent]
+        decimals = [0, 0, 1, 2, 2, 2]
         num_decimals = decimals[exponent]
         format_string = '{0:.%sf} {1}' % (num_decimals)
         return format_string.format(quotient, unit)

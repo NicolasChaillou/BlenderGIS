@@ -5,9 +5,7 @@ import json
 from .checkdeps import HAS_GDAL, HAS_PYPROJ, HAS_IMGIO, HAS_PIL
 
 def getAvailableProjEngines():
-	engines = ['AUTO', 'BUILTIN']
-	#if EPSGIO.ping():
-	engines.append('EPSGIO')
+	engines = ['AUTO', 'BUILTIN', 'EPSGIO']
 	if HAS_GDAL:
 		engines.append('GDAL')
 	if HAS_PYPROJ:
