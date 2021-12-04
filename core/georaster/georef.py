@@ -56,13 +56,10 @@ class GeoRef():
 			self.setSubBoxGeo(subBoxGeo)
 		else:
 			self.subBoxGeo = None
-		if crs is not None:
-			if isinstance(crs, SRS):
-				self.crs = crs
-			else:
-				raise IOError("CRS must be SRS() class object not " + str(type(crs)))
-		else:
+		if crs is not None and isinstance(crs, SRS) or crs is None:
 			self.crs = crs
+		else:
+			raise IOError("CRS must be SRS() class object not " + str(type(crs)))
 
 	############################################
 	# Alternative constructors
@@ -131,7 +128,7 @@ class GeoRef():
 			rotation = xy(e, b)
 		elif modelTiePoint is not None and modelPixelScale is not None:
 			origin = xy(*modelTiePoint[3:5])
-			pxSize = xy(*modelPixelScale[0:2])
+			pxSize = xy(*modelPixelScale[:2])
 			pxSize[1] = -pxSize.y #make negative value
 			rotation = xy(0, 0)
 		else:
@@ -157,7 +154,7 @@ class GeoRef():
 			origin[1] -= abs(pxSize.y/2)
 
 		#TODO extract crs (transcript geokeys to proj4 string)
-		
+
 		return cls((w, h), pxSize, origin, rot=rotation, pxCenter=True, crs=None)
 
 	############################################
@@ -177,9 +174,8 @@ class GeoRef():
 		xres, yres = self.pxSize
 		xrot, yrot = self.rotation
 		wf = (xres, xrot, yrot, yres, xmin, ymax)
-		f = open(path,'w')
-		f.write( '\n'.join(list(map(str, wf))) )
-		f.close()
+		with open(path,'w') as f:
+			f.write( '\n'.join(list(map(str, wf))) )
 
 	############################################
 	# Dynamic properties
@@ -254,10 +250,10 @@ class GeoRef():
 	def bbox(self):
 		'''Return a bbox class object'''
 		pts = self.corners
-		xmin = min([pt.x for pt in pts])
+		xmin = min(pt.x for pt in pts)
 		xmax = max([pt.x for pt in pts])
-		ymin = min([pt.y for pt in pts])
-		ymax = max([pt.y for pt in pts])
+		ymin = min(pt.y for pt in pts)
+		ymax = max(pt.y for pt in pts)
 		return BBOX(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax)
 
 	@property
@@ -380,9 +376,9 @@ class GeoRef():
 		#adjust against raster size if needed
 		#we count pixel number from 0 but size represents total number of pixel (counting from 1), so we must use size-1
 		sizex, sizey = self.rSize
-		if xminPx < 0: xminPx = 0
+		xminPx = max(xminPx, 0)
 		if xmaxPx >= sizex: xmaxPx = sizex - 1
-		if yminPx < 0: yminPx = 0
+		yminPx = max(yminPx, 0)
 		if ymaxPx >= sizey: ymaxPx = sizey - 1
 		#get the adjusted geo coords at pixels center
 		xmin, ymin = self.geoFromPx(xminPx, ymaxPx)

@@ -609,7 +609,7 @@ class BGIS_OT_add_dem_server(Operator):
 
 	def execute(self, context):
 		templates = ['{W}', '{E}', '{S}', '{N}']
-		if all([t in self.url for t in templates]):
+		if all(t in self.url for t in templates):
 			prefs = context.preferences.addons[PKG].preferences
 			data = json.loads(prefs.demServerJson)
 			data.append( (self.url, self.name, self.desc) )
@@ -675,7 +675,7 @@ class BGIS_OT_edit_dem_server(Operator):
 		key = prefs.demServer
 		data = json.loads(prefs.demServerJson)
 		templates = ['{W}', '{E}', '{S}', '{N}']
-		if all([t in self.url for t in templates]):
+		if all(t in self.url for t in templates):
 			data = [entry for entry in data if entry[0] != key] #deleting
 			data.append((self.url, self.name, self.desc))
 			prefs.demServerJson = json.dumps(data)

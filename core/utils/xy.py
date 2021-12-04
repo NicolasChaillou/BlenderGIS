@@ -30,10 +30,7 @@ class XY(object):
 		XY(**{'x': 0, 'y': 1}) - unpacking a dictionary
 		XY(*[0, 1]) - unpacking a list or a tuple (or a generic iterable)
 		'''
-		if z is None:
-			self.data=[x, y]
-		else:
-			self.data=[x, y, z]
+		self.data = [x, y] if z is None else [x, y, z]
 	def __str__(self):
 		if self.z is not None:
 			return "(%s, %s, %s)"%(self.x, self.y, self.z)

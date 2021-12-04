@@ -40,7 +40,7 @@ _TAGS = {
 	2059: ("GeogInvFlatteningGeoKey", [12], None, None),
 	2060: ("GeogAzimuthUnitsGeoKey",[3], None, None),
 	2061: ("GeogPrimeMeridianLongGeoKey", [12], None, None), # custom prime meridian value in GeogAngularUnits
-	
+
 	# Projected CS Parameter GeoKeys
 	3072: ("ProjectedCSTypeGeoKey", [3], None, None),        # epsg grid code [20000 - 32760]
 	3073: ("PCSCitationGeoKey", [2], None, None),            # ASCII text
@@ -66,7 +66,7 @@ _TAGS = {
 	3093: ("ProjScaleAtCenterGeoKey", [12], None, None),
 	3094: ("ProjAzimuthAngleGeoKey", [12], None, None),
 	3095: ("ProjStraightVertPoleLongGeoKey", [12], None, None),
-	
+
 	# Vertical CS Parameter Keys
 	4096: ("VerticalCSTypeGeoKey", [3], None, None),
 	4097: ("VerticalCitationGeoKey", [2], None, None),
@@ -74,8 +74,8 @@ _TAGS = {
 	4099: ("VerticalUnitsGeoKey", [3], None, None),
 }
 
-_2TAG = dict((v[0], t) for t,v in _TAGS.items())
-_2KEY = dict((v, k) for k,v in _2TAG.items())
+_2TAG = {v[0]: t for t,v in _TAGS.items()}
+_2KEY = {v: k for k,v in _2TAG.items()}
 
 if __PY3__:
 	import functools
@@ -89,13 +89,13 @@ class GkdTag(ifd.TiffTag):
 		self.name = name
 		if tag == 0: return
 		self.key, types, default, self.comment = _TAGS.get(tag, ("Unknown", [0,], None, "Undefined tag"))
-		value = default if value == None else value
+		value = default if value is None else value
 
 		self.tag = tag
 		restricted = getattr(values, self.key, {})
 
 		if restricted:
-			reverse = dict((v,k) for k,v in restricted.items())
+			reverse = {v: k for k,v in restricted.items()}
 			if value in restricted:
 				self.meaning = restricted.get(value)
 			elif value in reverse:
@@ -212,5 +212,4 @@ class Gkd(dict):
 		return lambda x,y,z1=0.,z2=1.,m=matrix: Transform(m, x,y,z1,z2)
 
 	def tags(self):
-		for v in sorted(dict.values(self), key=lambda e:e.tag):
-			yield v
+		yield from sorted(dict.values(self), key=lambda e:e.tag)

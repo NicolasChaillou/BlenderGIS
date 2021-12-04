@@ -102,7 +102,7 @@ def replace_nans(array, max_iter, tolerance, kernel_size=1, method='localmean'):
 
 	# make several passes
 	# until we reach convergence
-	for it in range(max_iter):
+	for _ in range(max_iter):
 		#print('Fill NaN iteration', it)
 		# for each NaN element
 		for k in range(n_nans):
@@ -118,33 +118,26 @@ def replace_nans(array, max_iter, tolerance, kernel_size=1, method='localmean'):
 				for J in range(2*kernel_size+1):
 
 					# if we are not out of the boundaries
-					if i+I-kernel_size < array.shape[0] and i+I-kernel_size >= 0:
-						if j+J-kernel_size < array.shape[1] and j+J-kernel_size >= 0:
-
-							# if the neighbour element is not NaN itself.
-							if filled[i+I-kernel_size, j+J-kernel_size] == filled[i+I-kernel_size, j+J-kernel_size] :
-
-								# do not sum itself
-								if I-kernel_size != 0 and J-kernel_size != 0:
+					if (i + I - kernel_size < array.shape[0] and i + I - kernel_size >= 0
+					    and j + J - kernel_size < array.shape[1] and j + J - kernel_size >= 0
+					    and filled[i + I - kernel_size, j + J - kernel_size] ==
+					    filled[i + I - kernel_size, j + J - kernel_size]
+					    and I - kernel_size != 0 and J - kernel_size != 0):
 
 									# convolve kernel with original array
-									filled[i,j] = filled[i,j] + filled[i+I-kernel_size, j+J-kernel_size]*kernel[I, J]
-									n = n + 1*kernel[I,J]
+						filled[i,j] += filled[i+I-kernel_size, j+J-kernel_size]*kernel[I, J]
+						n += 1*kernel[I,J]
 			# divide value by effective number of added elements
 			if n != 0:
-				filled[i,j] = filled[i,j] / n
+				filled[i,j] /= n
 				replaced_new[k] = filled[i,j]
 			else:
 				filled[i,j] = np.nan
 
-		# check if mean square difference between values of replaced
-		# elements is below a certain tolerance
-		#print('tolerance', np.mean( (replaced_new-replaced_old)**2 ))
 		if np.mean( (replaced_new-replaced_old)**2 ) < tolerance:
 			break
-		else:
-			for l in range(n_nans):
-				replaced_old[l] = replaced_new[l]
+		for l in range(n_nans):
+			replaced_old[l] = replaced_new[l]
 
 	return filled
 
@@ -205,5 +198,6 @@ def sincinterp(image, x,  y, kernel_size=3 ):
 						elif (j-y[I,J]) == 0.0:
 							r[I,J] = r[I,J] + image[i,j] * np.sin( pi*(i-x[I,J]) )/( pi*(i-x[I,J]) )
 						else:
-							r[I,J] = r[I,J] + image[i,j] * np.sin( pi*(i-x[I,J]) )*np.sin( pi*(j-y[I,J]) )/( pi*pi*(i-x[I,J])*(j-y[I,J]))
+							r[I, J] = r[I, J] + image[i, j] * np.sin(pi * (i - x[I, J])) * np.sin(
+							    pi * (j - y[I, J])) / (pi**2 * (i - x[I, J]) * (j - y[I, J]))
 	return r

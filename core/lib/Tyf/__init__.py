@@ -6,7 +6,7 @@ __geotiff__   = (1, 8, 1)
 
 import io, os, sys, struct, operator, collections
 
-__PY3__ = True if sys.version_info[0] >= 3 else False
+__PY3__ = sys.version_info[0] >= 3
 
 unpack = lambda fmt, fileobj: struct.unpack(fmt, fileobj.read(struct.calcsize(fmt)))
 pack = lambda fmt, fileobj, value: fileobj.write(struct.pack(fmt, *value))
@@ -50,7 +50,7 @@ def _read_IFD(obj, fileobj, offset, byteorder="<"):
 	nb_entry, = unpack(byteorder+"H", fileobj)
 
 	# for each entry
-	for i in range(nb_entry):
+	for _ in range(nb_entry):
 		# read tag, type and count values
 		tag, typ, count = unpack(byteorder+"HHL", fileobj)
 		# extract data
@@ -76,21 +76,18 @@ def _read_IFD(obj, fileobj, offset, byteorder="<"):
 			# go to offset in the file
 			fileobj.seek(value)
 			# if ascii type, convert to bytes
-			if typ == 2: tt.value = b"".join(e for e in unpack(fmt, fileobj))
-			# else if undefined type, read data
+			if typ == 2:
+				tt.value = b"".join(iter(unpack(fmt, fileobj)))
 			elif typ == 7: tt.value = fileobj.read(count)
-			# else unpack data
 			else: tt.value = unpack(fmt, fileobj)
 			# go back to ifd entry
 			fileobj.seek(bckp)
 
-		# if value is in the ifd entry
+		elif typ in [2, 7]:
+			tt.value = data[:count]
 		else:
-			if typ in [2, 7]:
-				tt.value = data[:count]
-			else:
-				fmt = byteorder + _typ*count
-				tt.value = struct.unpack(fmt, data[:count*struct.calcsize("="+_typ)])
+			fmt = byteorder + _typ*count
+			tt.value = struct.unpack(fmt, data[:count*struct.calcsize("="+_typ)])
 
 		obj.addtag(tt)
 
@@ -236,7 +233,7 @@ def to_buffer(obj, fileobj, offset, byteorder="<"):
 		next_ifd = tileoffsets[-1] + _325[-1]
 	elif 513 in obj:
 		interexchangeoffset = raw_offset
-		obj.set(513, 4, raw_offset)
+		obj.set(513, 4, interexchangeoffset)
 		next_ifd = interexchangeoffset + obj[514]
 	else:
 		next_ifd = raw_offset
@@ -335,7 +332,7 @@ class TiffFile(list):
 	def load_raster(self, idx=None):
 		if hasattr(self, "_filename"):
 			in_ = io.open(self._filename, "rb")
-			for ifd in iter(self) if idx == None else [self[idx]]:
+			for ifd in iter(self) if idx is None else [self[idx]]:
 				if not ifd.raster_loaded: _load_raster(ifd, in_)
 			in_.close()
 
@@ -346,7 +343,7 @@ class TiffFile(list):
 		pack(byteorder+"HH", fileobj, (0x4949 if byteorder == "<" else 0x4d4d, 0x2A,))
 		next_ifd = 8
 
-		for i in iter(self) if idx == None else [self[idx]]:
+		for i in iter(self) if idx is None else [self[idx]]:
 			pack(byteorder+"L", fileobj, (next_ifd,))
 			next_ifd = to_buffer(i, fileobj, next_ifd, byteorder)
 
@@ -444,7 +441,7 @@ class JpegFile(collections.OrderedDict):
 		for key in [k for k in self.exif.sub_ifd if k in self.exif]:
 			self.exif.pop(key)
 		self.exif.sub_ifd = {}
-		for key in list(k for k in self.exif if k not in tags.bTT):
+		for key in [k for k in self.exif if k not in tags.bTT]:
 			self.exif.pop(key)
 		while len(self[0xffe1]) > 1:
 			self[0xffe1].pop(-1)

@@ -81,10 +81,7 @@ class SK():
 class GeoScene():
 
 	def __init__(self, scn=None):
-		if scn is None:
-			self.scn = bpy.context.scene
-		else:
-			self.scn = scn
+		self.scn = bpy.context.scene if scn is None else scn
 		self.SK = SK()
 
 	@property
@@ -717,7 +714,7 @@ def georefManagerLayout(self, context):
 	split = row.split(factor=0.25)
 	if geoscn.hasCRS:
 		split.label(icon='PROP_ON', text='CRS:')
-	elif not geoscn.hasCRS and (geoscn.hasOriginGeo or geoscn.hasOriginPrj):
+	elif geoscn.hasOriginGeo or geoscn.hasOriginPrj:
 		split.label(icon='ERROR', text='CRS:')
 	else:
 		split.label(icon='PROP_OFF', text='CRS:')
@@ -744,11 +741,11 @@ def georefManagerLayout(self, context):
 	split = row.split(factor=0.25, align=True)
 	if not geoscn.hasOriginGeo and not geoscn.hasOriginPrj:
 		split.label(icon='PROP_OFF', text="Origin:")
-	elif not geoscn.hasOriginGeo and geoscn.hasOriginPrj:
+	elif not geoscn.hasOriginGeo:
 		split.label(icon='PROP_CON', text="Origin:")
-	elif geoscn.hasOriginGeo and geoscn.hasOriginPrj:
+	elif geoscn.hasOriginPrj:
 		split.label(icon='PROP_ON', text="Origin:")
-	elif geoscn.hasOriginGeo and not geoscn.hasOriginPrj:
+	else:
 		split.label(icon='ERROR', text="Origin:")
 
 	col = split.column(align=True)

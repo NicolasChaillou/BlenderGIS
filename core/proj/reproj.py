@@ -87,14 +87,11 @@ def reprojImg(crs1, crs2, ds1, out_ul=None, out_size=None, out_res=None, sqPx=Fa
 	nbBands = ds1.RasterCount
 	dtype = gdal.GetDataTypeName(ds1.GetRasterBand(1).DataType)
 
-	if rotx == roty == 0:
-		xmax = xmin + img_w * resx
-		ymin = ymax + img_h * resy
-		bbox = BBOX(xmin, ymin, xmax, ymax)
-	else:
+	if not rotx == roty == 0:
 		raise IOError("Raster must be rectified (no rotation parameters)")
-		#TODO reuse the GeoRef class to extract bbox even if there are rotation parameters
-
+	xmax = xmin + img_w * resx
+	ymin = ymax + img_h * resy
+	bbox = BBOX(xmin, ymin, xmax, ymax)
 	#Assign input CRS to input datasource
 	prj1 = SRS(crs1).getOgrSpatialRef()
 	wkt1 = prj1.ExportToWkt()
@@ -105,11 +102,7 @@ def reprojImg(crs1, crs2, ds1, out_ul=None, out_size=None, out_res=None, sqPx=Fa
 	# we can directly set its size, res and top left coord as expected
 	# reproject funtion will match the template (clip and resampling)
 
-	if out_ul is not None:
-		xmin, ymax = out_ul
-	else:
-		xmin, ymax = reprojPt(crs1, crs2, xmin, ymax)
-
+	xmin, ymax = out_ul if out_ul is not None else reprojPt(crs1, crs2, xmin, ymax)
 	#submit resolution and size
 	if out_res is not None and out_size is not None:
 		resx, resy = out_res, -out_res
@@ -160,20 +153,25 @@ def reprojImg(crs1, crs2, ds1, out_ul=None, out_size=None, out_res=None, sqPx=Fa
 
 	#Perform the projection/resampling
 	# Resample algo
-	if resamplAlg == 'NN' : alg = gdal.GRA_NearestNeighbour
-	elif resamplAlg == 'BL' : alg = gdal.GRA_Bilinear
-	elif resamplAlg == 'CB' : alg = gdal.GRA_Cubic
-	elif resamplAlg == 'CBS' : alg = gdal.GRA_CubicSpline
-	elif resamplAlg == 'LCZ' : alg = gdal.GRA_Lanczos
+	if resamplAlg == 'BL':
+		alg = gdal.GRA_Bilinear
+	elif resamplAlg == 'CB':
+		alg = gdal.GRA_Cubic
+	elif resamplAlg == 'CBS':
+		alg = gdal.GRA_CubicSpline
+	elif resamplAlg == 'LCZ':
+		alg = gdal.GRA_Lanczos
+	elif resamplAlg == 'NN':
+		if resamplAlg == 'NN' : alg = gdal.GRA_NearestNeighbour
 	# Memory limit (0 = no limit)
 	memLimit = 0
 	# Error in pixels (0 will use the exact transformer)
 	threshold = 0.25
-	# Warp options (http://www.gdal.org/structGDALWarpOptions.html)
-	opt = ['NUM_THREADS=ALL_CPUS, SAMPLE_GRID=YES']
 	#option parameters available since gdal 2.1
 	a, b, c = gdal.__version__.split('.', 2)
 	if (int(a) == 2 and int(b) >=1) or int(a) > 2:
+		# Warp options (http://www.gdal.org/structGDALWarpOptions.html)
+		opt = ['NUM_THREADS=ALL_CPUS, SAMPLE_GRID=YES']
 		gdal.ReprojectImage(ds1, ds2, wkt1, wkt2, alg, memLimit, threshold, options=opt)
 	else:
 		gdal.ReprojectImage(ds1, ds2, wkt1, wkt2, alg, memLimit, threshold)
@@ -219,12 +217,12 @@ class Reproj():
 		else:
 			if (self.iproj == 'GDAL' and not HAS_GDAL) or (self.iproj == 'PYPROJ' and not HAS_PYPROJ):
 				raise ReprojError('Missing reproj engine')
-			if self.iproj == 'BUILTIN':
-				if not ( ((crs1.isWM or crs1.isUTM) and crs2.isWGS84) or (crs1.isWGS84 and (crs2.isWM or crs2.isUTM)) ):
-					raise ReprojError('Too limited built in reprojection capabilities')
-			if self.iproj == 'EPSGIO':
-				if not  EPSGIO.ping():
-					raise ReprojError('Cannot access epsg.io service')
+			if (self.iproj == 'BUILTIN'
+			    and (not crs1.isWM and not crs1.isUTM or not crs2.isWGS84)
+			    and (not crs1.isWGS84 or not crs2.isWM and not crs2.isUTM)):
+				raise ReprojError('Too limited built in reprojection capabilities')
+			if self.iproj == 'EPSGIO' and not EPSGIO.ping():
+				raise ReprojError('Cannot access epsg.io service')
 
 
 		if self.iproj == 'GDAL':

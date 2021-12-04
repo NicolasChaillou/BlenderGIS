@@ -81,7 +81,7 @@ class Format:
         # Store name and description
         self._name = name.upper()
         self._description = description
-        
+
         # Store extensions, do some effort to normalize them.
         # They are stored as a list of lowercase strings without leading dots.
         if extensions is None:
@@ -90,11 +90,10 @@ class Format:
             extensions = extensions.replace(',', ' ').split(' ')
         #
         if isinstance(extensions, (tuple, list)):
-            self._extensions = tuple(['.' + e.strip('.').lower() 
-                                      for e in extensions if e])
+            self._extensions = tuple('.' + e.strip('.').lower() for e in extensions if e)
         else:
             raise ValueError('Invalid value for extensions given.')
-        
+
         # Store mode
         self._modes = modes or ''
         if not isinstance(self._modes, string_types):
@@ -532,14 +531,14 @@ class FormatManager:
         if not isinstance(name, string_types):
             raise ValueError('Looking up a format should be done by name '
                              'or by extension.')
-        
+
         # Test if name is existing file
         if os.path.isfile(name):
             from . import Request
             format = self.search_read_format(Request(name, 'r?'))
             if format is not None:
                 return format
-        
+
         if '.' in name:
             # Look for extension
             e1, e2 = os.path.splitext(name.lower())
@@ -554,10 +553,9 @@ class FormatManager:
             for format in self._formats:
                 if name == format.name:
                     return format
-            else:
-                # Maybe the user meant to specify an extension
-                return self['.'+name.lower()]
-        
+            # Maybe the user meant to specify an extension
+            return self['.'+name.lower()]
+
         # Nothing found ...
         raise IndexError('No format known by name %s.' % name)
     
@@ -588,25 +586,25 @@ class FormatManager:
         """
         select_mode = request.mode[1] if request.mode[1] in 'iIvV' else ''
         select_ext = request.filename.lower()
-        
+
         # Select formats that seem to be able to read it
-        selected_formats = []
-        for format in self._formats:
-            if select_mode in format.modes:
-                if select_ext.endswith(format.extensions):
-                    selected_formats.append(format)
-        
+        selected_formats = [
+            format
+            for format in self._formats
+            if select_mode in format.modes
+            and select_ext.endswith(format.extensions)
+        ]
+
         # Select the first that can
         for format in selected_formats:
             if format.can_read(request):
                 return format
-        
+
         # If no format could read it, it could be that file has no or
         # the wrong extension. We ask all formats again.
         for format in self._formats:
-            if format not in selected_formats:
-                if format.can_read(request):
-                    return format
+            if format not in selected_formats and format.can_read(request):
+                return format
     
     def search_write_format(self, request):
         """ search_write_format(request)
@@ -616,26 +614,26 @@ class FormatManager:
         """
         select_mode = request.mode[1] if request.mode[1] in 'iIvV' else ''
         select_ext = request.filename.lower()
-        
+
         # Select formats that seem to be able to write it
-        selected_formats = []
-        for format in self._formats:
-            if select_mode in format.modes:
-                if select_ext.endswith(format.extensions):
-                    selected_formats.append(format)
-        
+        selected_formats = [
+            format
+            for format in self._formats
+            if select_mode in format.modes
+            and select_ext.endswith(format.extensions)
+        ]
+
         # Select the first that can
         for format in selected_formats:
             if format.can_write(request):
                 return format
-        
+
         # If none of the selected formats could write it, maybe another
         # format can still write it. It might prefer a different mode,
         # or be able to handle more formats than it says by its extensions.
         for format in self._formats:
-            if format not in selected_formats:
-                if format.can_write(request):
-                    return format
+            if format not in selected_formats and format.can_write(request):
+                return format
     
     def get_format_names(self):
         """ Get the names of all registered formats.

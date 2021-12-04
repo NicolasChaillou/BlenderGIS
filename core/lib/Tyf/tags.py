@@ -45,66 +45,310 @@ bTT = {
 
 # Extension TIFF tags
 xTT = {
-	269:   ("DocumentName", [2], None, "The name of the document from which this image was scanned"),
-	285:   ("PageName", [2], None, "The name of the page from which this image was scanned"),
-	286:   ("XPosition", [5], None, "X position of the image"),
-	287:   ("YPosition", [5], None, "Y position of the image"),
-	292:   ("T4Options", [4], 0, "Options for Group 3 Fax compression"),
-	293:   ("T6Options", [4], 0, "Options for Group 6 Fax compression"),
-	297:   ("PageNumber", [1], None, "The page number of the page from which this image was scanned"),
-	301:   ("TransferFunction", [1], 1*(1<<1), "Describes a transfer function for the image in tabular style"),
-	317:   ("Predictor", [3], 1, "A mathematical operator that is applied to the image data before an encoding scheme is applied"),
-	318:   ("WhitePoint", [5], None, "The chromaticity of the white point of the image"),
-	319:   ("PrimaryChromaticies", [5], None, "The chromaticities of the primaries of the image"),
-	321:   ("HalftoneHints", [1], None, "Conveys to the halftone function the range of gray levels within a colorimetrically-specified image that should retain tonal detail"),
-	322:   ("TileWidth", [1,4], None, "The tile width in pixels This is the number of columns in each tile"),
-	323:   ("TileLength", [1,4], None, "The tile length (height) in pixels This is the number of rows in each tile"),
-	324:   ("TileOffsets", [4], None, "For each tile, the byte offset of that tile, as compressed and stored on disk"),
-	325:   ("TileByteCounts", [1,4], None, "For each tile, the number of (compressed) bytes in that tile"),
-	326:   ("BadFaxLinea", [1,4], None, "Used in the TIFF-F standard, denotes the number of 'bad' scan lines encountered by the facsimile device"),
-	327:   ("CleanFaxData", [1], None, "Used in the TIFF-F standard, indicates if 'bad' lines encountered during reception are stored in the data, or if 'bad' lines have been replaced by the receiver"),
-	328:   ("ConsecutiveBadFaxLines", [1,4], None, "Used in the TIFF-F standard, denotes the maximum number of consecutive 'bad' scanlines received"),
-	328:   ("SubIFDs", [2,4], None, "Offset to child IFDs"), # ???
-	332:   ("InkSet", [1], None, "The set of inks used in a separated (PhotometricInterpretation=5) image"),
-	333:   ("InkNames", [2], None, "The name of each ink used in a separated image"),
-	334:   ("NumberOfInks", [1], 4, "The number of inks"),
-	336:   ("DotRange", [1,3], (0,1), "The component values that correspond to a 0%% dot and 100%% dot"),
-	337:   ("TargetPrinter", [2], None, "A description of the printing environment for which this separation is intended"),
-	339:   ("SampleFormat", [1], 1, "Specifies how to interpret each data sample in a pixel"),
-	340:   ("SMinSampleValue", [3,7,8,12], None, "Specifies the minimum sample value"),
-	341:   ("SMaxSampleValue", [3,7,8,12], None, "Specifies the maximum sample value"),
-	342:   ("TransferRange", [1], None, "Expands the range of the TransferFunction"),
-	343:   ("ClipPath", [3], None, "Mirrors the essentials of PostScript's path creation functionality"),
-	344:   ("XClipPathUnits", [4], None, "The number of units that span the width of the image, in terms of integer ClipPath coordinates"),
-	345:   ("YClipPathUnits", [4], None, "The number of units that span the height of the image, in terms of integer ClipPath coordinates"),
-	346:   ("Indexed", [1], 0, "Aims to broaden the support for indexed images to include support for any color space"),
-	347:   ("JPEGTables", [7], None, "JPEG quantization and/or Huffman tables"),
-	351:   ("OPIProxy", [1], 0, "OPI-related"),
-	400:   ("GlobalParametersIFD", [2,4], None, "Used in the TIFF-FX standard to point to an IFD containing tags that are globally applicable to the complete TIFF file"),
-	401:   ("ProfileType", [4], None, "Used in the TIFF-FX standard, denotes the type of data stored in this file or IFD"),
-	402:   ("FaxProfile", [3], None, "Used in the TIFF-FX standard, denotes the 'profile' that applies to this file"),
-	403:   ("CodingMethods", [4], None, "Used in the TIFF-FX standard, indicates which coding methods are used in the file"),
-	404:   ("VersionYear", [3], None, "Used in the TIFF-FX standard, denotes the year of the standard specified by the FaxProfile field"),
-	405:   ("ModeNumber", [3], None, "Used in the TIFF-FX standard, denotes the mode of the standard specified by the FaxProfile field"),
-	433:   ("Decode", [10],None, "Used in the TIFF-F and TIFF-FX standards, holds information about the ITULAB (PhotometricInterpretation = 10) encoding"),
-	434:   ("DefaultImageColor", [1], None, "Defined in the Mixed Raster Content part of RFC 2301, is the default color needed in areas where no image is available"),
-	512:   ("JPEGProc", [1], None, "Old-style JPEG compression field TechNote2 invalidates this part of the specification"),
-	513:   ("JPEGInterchangeFormat", [4], None, "Old-style JPEG compression field TechNote2 invalidates this part of the specification"),
-	514:   ("JPEGInterchangeFormatLength", [4], None, "Old-style JPEG compression field TechNote2 invalidates this part of the specification"),
-	515:   ("JPEGRestartInterval", [1], None, "Old-style JPEG compression field TechNote2 invalidates this part of the specification"),
-	517:   ("JPEGLosslessPredictors", [1], None, "Old-style JPEG compression field TechNote2 invalidates this part of the specification"),
-	518:   ("JPEGPointTransforms", [1], None, "Old-style JPEG compression field TechNote2 invalidates this part of the specification"),
-	519:   ("JPEGQTables", [4], None, "Old-style JPEG compression field TechNote2 invalidates this part of the specification"),
-	520:   ("JPEGDCTables", [4], None, "Old-style JPEG compression field TechNote2 invalidates this part of the specificationl"),
-	521:   ("JPEGACTables", [4], None, "Old-style JPEG compression field TechNote2 invalidates this part of the specification"),
-	529:   ("YCbCrCoefficients", [5], (299,1000,587,1000,114,1000), "The transformation from RGB to YCbCr image data"),
-	530:   ("YCbCrSubSampling", [1], (2,2), "Specifies the subsampling factors used for the chrominance components of a YCbCr image"),
-	531:   ("YCbCrPositioning", [1], 1, "Specifies the positioning of subsampled chrominance components relative to luminance samples"),
-	532:   ("ReferenceBlackWhite", [5], (0,1,1,1,0,1,1,1,0,1,1,1), "Specifies a pair of headroom and footroom image data values (codes) for each pixel component"),
-	559:   ("StripRowCounts", [4], None, "Defined in the Mixed Raster Content part of RFC 2301, used to replace RowsPerStrip for IFDs with variable-sized strips"),
-	700:   ("XMP", [3], None, "XML packet containing XMP metadata"),
-	32781: ("ImageID", [2], None, "OPI-related"),
-	34732: ("ImageLayer", [1,4], None, "Defined in the Mixed Raster Content part of RFC 2301, used to denote the particular function of this Image in the mixed raster scheme"),
+    269: (
+        "DocumentName",
+        [2],
+        None,
+        "The name of the document from which this image was scanned",
+    ),
+    285: (
+        "PageName",
+        [2],
+        None,
+        "The name of the page from which this image was scanned",
+    ),
+    286: ("XPosition", [5], None, "X position of the image"),
+    287: ("YPosition", [5], None, "Y position of the image"),
+    292: ("T4Options", [4], 0, "Options for Group 3 Fax compression"),
+    293: ("T6Options", [4], 0, "Options for Group 6 Fax compression"),
+    297: (
+        "PageNumber",
+        [1],
+        None,
+        "The page number of the page from which this image was scanned",
+    ),
+    301: (
+        "TransferFunction",
+        [1],
+        1 * (1 << 1),
+        "Describes a transfer function for the image in tabular style",
+    ),
+    317: (
+        "Predictor",
+        [3],
+        1,
+        "A mathematical operator that is applied to the image data before an encoding scheme is applied",
+    ),
+    318: (
+        "WhitePoint",
+        [5],
+        None,
+        "The chromaticity of the white point of the image",
+    ),
+    319: (
+        "PrimaryChromaticies",
+        [5],
+        None,
+        "The chromaticities of the primaries of the image",
+    ),
+    321: (
+        "HalftoneHints",
+        [1],
+        None,
+        "Conveys to the halftone function the range of gray levels within a colorimetrically-specified image that should retain tonal detail",
+    ),
+    322: (
+        "TileWidth",
+        [1, 4],
+        None,
+        "The tile width in pixels This is the number of columns in each tile",
+    ),
+    323: (
+        "TileLength",
+        [1, 4],
+        None,
+        "The tile length (height) in pixels This is the number of rows in each tile",
+    ),
+    324: (
+        "TileOffsets",
+        [4],
+        None,
+        "For each tile, the byte offset of that tile, as compressed and stored on disk",
+    ),
+    325: (
+        "TileByteCounts",
+        [1, 4],
+        None,
+        "For each tile, the number of (compressed) bytes in that tile",
+    ),
+    326: (
+        "BadFaxLinea",
+        [1, 4],
+        None,
+        "Used in the TIFF-F standard, denotes the number of 'bad' scan lines encountered by the facsimile device",
+    ),
+    327: (
+        "CleanFaxData",
+        [1],
+        None,
+        "Used in the TIFF-F standard, indicates if 'bad' lines encountered during reception are stored in the data, or if 'bad' lines have been replaced by the receiver",
+    ),
+    328: ("SubIFDs", [2, 4], None, "Offset to child IFDs"),
+    332: (
+        "InkSet",
+        [1],
+        None,
+        "The set of inks used in a separated (PhotometricInterpretation=5) image",
+    ),
+    333: (
+        "InkNames",
+        [2],
+        None,
+        "The name of each ink used in a separated image",
+    ),
+    334: ("NumberOfInks", [1], 4, "The number of inks"),
+    336: (
+        "DotRange",
+        [1, 3],
+        (0, 1),
+        "The component values that correspond to a 0%% dot and 100%% dot",
+    ),
+    337: (
+        "TargetPrinter",
+        [2],
+        None,
+        "A description of the printing environment for which this separation is intended",
+    ),
+    339: (
+        "SampleFormat",
+        [1],
+        1,
+        "Specifies how to interpret each data sample in a pixel",
+    ),
+    340: (
+        "SMinSampleValue",
+        [3, 7, 8, 12],
+        None,
+        "Specifies the minimum sample value",
+    ),
+    341: (
+        "SMaxSampleValue",
+        [3, 7, 8, 12],
+        None,
+        "Specifies the maximum sample value",
+    ),
+    342: (
+        "TransferRange",
+        [1],
+        None,
+        "Expands the range of the TransferFunction",
+    ),
+    343: (
+        "ClipPath",
+        [3],
+        None,
+        "Mirrors the essentials of PostScript's path creation functionality",
+    ),
+    344: (
+        "XClipPathUnits",
+        [4],
+        None,
+        "The number of units that span the width of the image, in terms of integer ClipPath coordinates",
+    ),
+    345: (
+        "YClipPathUnits",
+        [4],
+        None,
+        "The number of units that span the height of the image, in terms of integer ClipPath coordinates",
+    ),
+    346: (
+        "Indexed",
+        [1],
+        0,
+        "Aims to broaden the support for indexed images to include support for any color space",
+    ),
+    347: ("JPEGTables", [7], None, "JPEG quantization and/or Huffman tables"),
+    351: ("OPIProxy", [1], 0, "OPI-related"),
+    400: (
+        "GlobalParametersIFD",
+        [2, 4],
+        None,
+        "Used in the TIFF-FX standard to point to an IFD containing tags that are globally applicable to the complete TIFF file",
+    ),
+    401: (
+        "ProfileType",
+        [4],
+        None,
+        "Used in the TIFF-FX standard, denotes the type of data stored in this file or IFD",
+    ),
+    402: (
+        "FaxProfile",
+        [3],
+        None,
+        "Used in the TIFF-FX standard, denotes the 'profile' that applies to this file",
+    ),
+    403: (
+        "CodingMethods",
+        [4],
+        None,
+        "Used in the TIFF-FX standard, indicates which coding methods are used in the file",
+    ),
+    404: (
+        "VersionYear",
+        [3],
+        None,
+        "Used in the TIFF-FX standard, denotes the year of the standard specified by the FaxProfile field",
+    ),
+    405: (
+        "ModeNumber",
+        [3],
+        None,
+        "Used in the TIFF-FX standard, denotes the mode of the standard specified by the FaxProfile field",
+    ),
+    433: (
+        "Decode",
+        [10],
+        None,
+        "Used in the TIFF-F and TIFF-FX standards, holds information about the ITULAB (PhotometricInterpretation = 10) encoding",
+    ),
+    434: (
+        "DefaultImageColor",
+        [1],
+        None,
+        "Defined in the Mixed Raster Content part of RFC 2301, is the default color needed in areas where no image is available",
+    ),
+    512: (
+        "JPEGProc",
+        [1],
+        None,
+        "Old-style JPEG compression field TechNote2 invalidates this part of the specification",
+    ),
+    513: (
+        "JPEGInterchangeFormat",
+        [4],
+        None,
+        "Old-style JPEG compression field TechNote2 invalidates this part of the specification",
+    ),
+    514: (
+        "JPEGInterchangeFormatLength",
+        [4],
+        None,
+        "Old-style JPEG compression field TechNote2 invalidates this part of the specification",
+    ),
+    515: (
+        "JPEGRestartInterval",
+        [1],
+        None,
+        "Old-style JPEG compression field TechNote2 invalidates this part of the specification",
+    ),
+    517: (
+        "JPEGLosslessPredictors",
+        [1],
+        None,
+        "Old-style JPEG compression field TechNote2 invalidates this part of the specification",
+    ),
+    518: (
+        "JPEGPointTransforms",
+        [1],
+        None,
+        "Old-style JPEG compression field TechNote2 invalidates this part of the specification",
+    ),
+    519: (
+        "JPEGQTables",
+        [4],
+        None,
+        "Old-style JPEG compression field TechNote2 invalidates this part of the specification",
+    ),
+    520: (
+        "JPEGDCTables",
+        [4],
+        None,
+        "Old-style JPEG compression field TechNote2 invalidates this part of the specificationl",
+    ),
+    521: (
+        "JPEGACTables",
+        [4],
+        None,
+        "Old-style JPEG compression field TechNote2 invalidates this part of the specification",
+    ),
+    529: (
+        "YCbCrCoefficients",
+        [5],
+        (299, 1000, 587, 1000, 114, 1000),
+        "The transformation from RGB to YCbCr image data",
+    ),
+    530: (
+        "YCbCrSubSampling",
+        [1],
+        (2, 2),
+        "Specifies the subsampling factors used for the chrominance components of a YCbCr image",
+    ),
+    531: (
+        "YCbCrPositioning",
+        [1],
+        1,
+        "Specifies the positioning of subsampled chrominance components relative to luminance samples",
+    ),
+    532: (
+        "ReferenceBlackWhite",
+        [5],
+        (0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1),
+        "Specifies a pair of headroom and footroom image data values (codes) for each pixel component",
+    ),
+    559: (
+        "StripRowCounts",
+        [4],
+        None,
+        "Defined in the Mixed Raster Content part of RFC 2301, used to replace RowsPerStrip for IFDs with variable-sized strips",
+    ),
+    700: ("XMP", [3], None, "XML packet containing XMP metadata"),
+    32781: ("ImageID", [2], None, "OPI-related"),
+    34732: (
+        "ImageLayer",
+        [1, 4],
+        None,
+        "Defined in the Mixed Raster Content part of RFC 2301, used to denote the particular function of this Image in the mixed raster scheme",
+    ),
 }
 
 # Private TIFF tags
@@ -286,8 +530,10 @@ gpsT = {
 }
 
 _TAG_FAMILIES = [bTT, xTT, pTT, exfT, gpsT]
-_TAG_FAMILIES_2TAG = [dict((v[0], t) for t,v in dic.items()) for dic in _TAG_FAMILIES]
-_TAG_FAMILIES_2KEY = [dict((v, k) for k,v in dic.items()) for dic in _TAG_FAMILIES_2TAG]
+_TAG_FAMILIES_2TAG = [{v[0]: t
+                       for t, v in dic.items()} for dic in _TAG_FAMILIES]
+_TAG_FAMILIES_2KEY = [{v: k
+                       for k, v in dic.items()} for dic in _TAG_FAMILIES_2TAG]
 
 def get(tag):
 	idx = 0
@@ -301,16 +547,10 @@ def get(tag):
 def _2tag(tag, family=None):
 	if family != None:
 		idx = _TAG_FAMILIES.index(family)
-		if isinstance(tag, (bytes, str)):
-			if tag in _TAG_FAMILIES_2TAG[idx]:
-				return _TAG_FAMILIES_2TAG[idx][tag]
-			return tag
-		else:
-			return tag
+		if isinstance(tag, (bytes, str)) and tag in _TAG_FAMILIES_2TAG[idx]:
+			return _TAG_FAMILIES_2TAG[idx][tag]
 	elif isinstance(tag, (bytes, str)):
 		for dic in _TAG_FAMILIES_2TAG:
 			if tag in dic:
 				return dic[tag]
-		return tag
-	else:
-		return tag
+	return tag

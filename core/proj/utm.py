@@ -14,7 +14,7 @@ import math
 K0 = 0.9996
 
 E = 0.00669438
-E2 = E * E
+E2 = E**2
 E3 = E2 * E
 E_P2 = E / (1.0 - E)
 
@@ -80,10 +80,7 @@ def _code_from_epsg(epsg):
 def epsg_to_zone_northern(epsg):
 	code = _code_from_epsg(epsg)
 	zone = int(code[-2:])
-	if code[2] == '6':
-		northern = True
-	else:
-		northern = False
+	northern = code[2] == '6'
 	return zone, northern
 
 def lonlat_to_epsg(longitude, latitude):

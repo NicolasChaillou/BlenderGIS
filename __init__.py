@@ -365,9 +365,8 @@ def unregister():
 		wm = bpy.context.window_manager
 		if '3D View' in  wm.keyconfigs.active.keymaps:
 			km = wm.keyconfigs.active.keymaps['3D View']
-			if BASEMAPS:
-				if 'view3d.map_start' in km.keymap_items:
-					kmi = km.keymap_items.remove(km.keymap_items['view3d.map_start'])
+			if BASEMAPS and 'view3d.map_start' in km.keymap_items:
+				kmi = km.keymap_items.remove(km.keymap_items['view3d.map_start'])
 
 	bpy.types.VIEW3D_MT_editor_menus.remove(add_gis_menu)
 

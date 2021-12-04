@@ -525,7 +525,7 @@ class Freeimage(object):
         (warnings and errors) produced by the FreeImage library.
         """ 
         # This message log is not cleared/reset, but kept to 256 elements.
-        return [m for m in self._messages]
+        return list(self._messages)
 
     def getFIF(self, filename, mode, bytes=None):
         """ Get the freeimage Format (FIF) from a given filename.
@@ -609,11 +609,9 @@ class FIBaseBitmap(object):
     def _set_bitmap(self, bitmap, close_func=None):
         """ Function to set the bitmap and specify the function to unload it.
         """ 
-        if self._bitmap is not None:
-            pass  # bitmap is converted
         if close_func is None:
             close_func = self._fi.lib.FreeImage_Unload, bitmap
-        
+
         self._bitmap = bitmap
         if close_func:
             self._close_funcs.append(close_func)
@@ -622,15 +620,15 @@ class FIBaseBitmap(object):
         
         # todo: there is also FreeImage_TagToString, is that useful?
         # and would that work well when reading and then saving?
-        
+
         # Create a list of (model_name, number) tuples
         models = [(name[5:], number) for name, number in
                   METADATA_MODELS.__dict__.items() if name.startswith('FIMD_')]
-        
+
         # Prepare
         metadata = Dict()
         tag = ctypes.c_void_p()
-        
+
         with self._fi as lib:
             
             # Iterate over all FreeImage meta models
@@ -662,9 +660,7 @@ class FIBaseBitmap(object):
                             tag_val = tag_bytes.decode('utf-8', 'replace')
                         elif tag_type in METADATA_DATATYPE.dtypes:
                             dtype = METADATA_DATATYPE.dtypes[tag_type]
-                            if IS_PYPY and isinstance(dtype, (list, tuple)):
-                                pass  # pragma: no cover - or we get a segfault
-                            else:
+                            if not IS_PYPY or not isinstance(dtype, (list, tuple)):
                                 try:
                                     tag_val = numpy.fromstring(tag_bytes, 
                                                                dtype=dtype)
@@ -678,10 +674,10 @@ class FIBaseBitmap(object):
                         # Next
                         more = lib.FreeImage_FindNextMetadata(
                             mdhandle, ctypes.byref(tag))
-                    
+
                     # Close search handle for current meta model
                     lib.FreeImage_FindCloseMetadata(mdhandle)
-            
+
             # Done
             return metadata
     
@@ -698,8 +694,7 @@ class FIBaseBitmap(object):
             for number, numpy_dtype in METADATA_DATATYPE.dtypes.items():
                 if dtype == numpy_dtype:
                     return number
-            else:
-                return None
+            return None
         
         with self._fi as lib:
             

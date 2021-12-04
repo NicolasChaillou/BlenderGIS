@@ -30,9 +30,7 @@ def get_street(street, areacode, api=None):
         out skel qt;
     """
 
-    data = api.query(query % (areacode, street))
-
-    return data
+    return api.query(query % (areacode, street))
 
 
 def get_intersection(street1, street2, areacode, api=None):

@@ -36,11 +36,7 @@ def _exportAsMesh(georaster, dx=0, dy=0, step=1, buildFaces=True, flat=False, su
 	if subset and georaster.subBoxGeo is None:
 		subset = False
 
-	if not subset:
-		georef = georaster.georef
-	else:
-		georef = georaster.getSubBoxGeoRef()
-
+	georef = georaster.georef if not subset else georaster.getSubBoxGeoRef()
 	x0, y0 = georef.origin #pxcenter
 	pxSizeX, pxSizeY = georef.pxSize.x, georef.pxSize.y
 	w, h = georef.rSize.x, georef.rSize.y
@@ -49,8 +45,8 @@ def _exportAsMesh(georaster, dx=0, dy=0, step=1, buildFaces=True, flat=False, su
 	w, h = math.ceil(w/step), math.ceil(h/step)
 	pxSizeX, pxSizeY = pxSizeX * step, pxSizeY * step
 
-	x = np.array([(x0 + (pxSizeX * i)) - dx for i in range(0, w)])
-	y = np.array([(y0 + (pxSizeY * i)) - dy for i in range(0, h)])
+	x = np.array([(x0 + (pxSizeX * i)) - dx for i in range(w)])
+	y = np.array([(y0 + (pxSizeY * i)) - dy for i in range(h)])
 	xx, yy = np.meshgrid(x, y)
 	#TODO reproj
 
@@ -61,7 +57,8 @@ def _exportAsMesh(georaster, dx=0, dy=0, step=1, buildFaces=True, flat=False, su
 
 	verts = np.column_stack((xx.ravel(), yy.ravel(), zz.ravel()))
 	if buildFaces:
-		faces = [(x+y*w, x+y*w+1, x+y*w+1+w, x+y*w+w) for x in range(0, w-1) for y in range(0, h-1)]
+		faces = [(x + y * w, x + y * w + 1, x + y * w + 1 + w, x + y * w + w)
+		         for x in range(w - 1) for y in range(h - 1)]
 	else:
 		faces = []
 	mesh = bpy.data.meshes.new("DEM")
@@ -74,11 +71,7 @@ def exportAsMesh(georaster, dx=0, dy=0, step=1, buildFaces=True, subset=False, r
 	if subset and georaster.subBoxGeo is None:
 		subset = False
 
-	if not subset:
-		georef = georaster.georef
-	else:
-		georef = georaster.getSubBoxGeoRef()
-
+	georef = georaster.georef if not subset else georaster.getSubBoxGeoRef()
 	if not flat:
 		img = georaster.readAsNpArray(subset=subset)
 		#TODO raise error if multiband
@@ -105,11 +98,7 @@ def exportAsMesh(georaster, dx=0, dy=0, step=1, buildFaces=True, subset=False, r
 			x -= dx
 			y -= dy
 
-			if flat:
-				z = 0
-			else:
-				z = data[py, px]
-
+			z = 0 if flat else data[py, px]
 			#vertex index
 			v1 = px + py * w #bottom right
 
@@ -126,7 +115,7 @@ def exportAsMesh(georaster, dx=0, dy=0, step=1, buildFaces=True, subset=False, r
 					v3 = v2 - w * step #topleft
 					v4 = v3 + step #topright
 					f = [v4, v3, v2, v1] #anticlockwise --> face up
-					if not any(v in f for v in nodata): #TODO too slow ?
+					if all(v not in f for v in nodata): #TODO too slow ?
 						f = [idxMap[v] for v in f]
 						faces.append(f)
 
@@ -201,14 +190,7 @@ def setDisplacer(obj, rast, uvTxtLayer, mid=0, interpolation=False):
 	#		(because in Blender, pixel values are normalized between 0.0 and 1.0)
 	#>> Strength = delta Z / (delta Z / (2^depth-1))
 	#>> Strength = 2^depth-1
-	if rast.depth < 32:
-		#8 or 16 bits unsigned values (signed int16 must be converted to float to be usuable)
-		displacer.strength = 2**rast.depth-1
-	else:
-		#32 bits values
-		#with float raster, blender give directly raw float values(non normalied)
-		#so a texture value of 100 simply give a displacement of 100
-		displacer.strength = 1
+	displacer.strength = 2**rast.depth-1 if rast.depth < 32 else 1
 	bpy.ops.object.shade_smooth()
 	return displacer
 
@@ -233,11 +215,7 @@ class bpyGeoRaster(GeoRaster):
 		or self.ddtype == 'int16':
 
 			#Open the raster as numpy array (read only a subset if we want to clip it)
-			if clip:
-				img = self.readAsNpArray(subset=True)
-			else:
-				img = self.readAsNpArray()
-
+			img = self.readAsNpArray(subset=True) if clip else self.readAsNpArray()
 			#always cast to float because it's the more convenient datatype for displace texture
 			#(will not be normalized from 0.0 to 1.0 in Blender)
 			img.cast2float()
@@ -280,20 +258,12 @@ class bpyGeoRaster(GeoRaster):
 	@property
 	def isLoaded(self):
 		'''Flag if the image has been loaded in Blender'''
-		if self.bpyImg is not None:
-			return True
-		else:
-			return False
+		return self.bpyImg is not None
 	@property
 	def isPacked(self):
 		'''Flag if the image has been packed in Blender'''
-		if self.bpyImg is not None:
-			if len(self.bpyImg.packed_files) == 0:
-				return False
-			else:
-				return True
-		else:
-			return False
+		return (self.bpyImg is None
+		        or len(self.bpyImg.packed_files) != 0) and self.bpyImg is not None
 
 	###############################################
 	# Old methods that use bpy.image.pixels and numpy, keeped here as history
@@ -359,14 +329,12 @@ class bpyGeoRaster(GeoRaster):
 				#corresponding to a range from -1 to -32768
 				a = np.where(a > 32767, -(65536-a), a)
 			'''
-		if not subset:
-			return a
-		else:
+		if subset:
 			# Get overlay extent (in pixels)
 			subBoxPx = self.subBoxPx
 			# Get subset data (min and max pixel number are both include)
 			a = a[subBoxPx.ymin:subBoxPx.ymax+1, subBoxPx.xmin:subBoxPx.xmax+1] #topleft to bottomright
-			return a
+		return a
 
 
 	def flattenPixelsArray(self, px):

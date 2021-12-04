@@ -21,8 +21,7 @@ def mouseTo3d(context, x, y):
 	reg = context.region
 	reg3d = context.region_data
 	vec = region_2d_to_vector_3d(reg, reg3d, coords)
-	loc = region_2d_to_location_3d(reg, reg3d, coords, vec) #WARNING, this function return indeterminate value when view3d clip distance is too large
-	return loc
+	return region_2d_to_location_3d(reg, reg3d, coords, vec)
 
 
 class DropToGround():
@@ -44,7 +43,6 @@ class DropToGround():
 		orgWldSpace = Vector((x, y, self.bbox.zmax + offset))
 		orgObjSpace = self.mwi @ orgWldSpace
 		direction = Vector((0,0,-1)) #down
-		#build ray cast hit namespace object
 		class RayCastHit(): pass
 		rcHit = RayCastHit()
 		#raycast
@@ -52,10 +50,7 @@ class DropToGround():
 			rcHit.hit, rcHit.loc, rcHit.normal, rcHit.faceIdx = self.ground.ray_cast(orgObjSpace, direction)
 		elif self.method == 'BVH':
 			rcHit.loc, rcHit.normal, rcHit.faceIdx, rcHit.dst = self.bvh.ray_cast(orgObjSpace, direction)
-			if not rcHit.loc:
-				rcHit.hit = False
-			else:
-				rcHit.hit = True
+			rcHit.hit = bool(rcHit.loc)
 		#adjust values
 		if not rcHit.hit:
 			#return same original 2d point with z=0
@@ -97,8 +92,7 @@ def adjust3Dview(context, bbox, zoomToSelect=True):
 				space.clip_start = 100
 			#Adjust clip end distance if the new obj is largest than actual setting
 			if space.clip_end < dst:
-				if dst > 10000000:
-					dst = 10000000 #too large clip distance broke the 3d view
+				dst = min(dst, 10000000)
 				space.clip_end = dst
 			if zoomToSelect:
 				overrideContext = context.copy()
@@ -157,10 +151,10 @@ class getBBOX():
 		else:
 			boundPts = obj.bound_box
 		xmin = min([pt[0] for pt in boundPts])
-		xmax = max([pt[0] for pt in boundPts])
-		ymin = min([pt[1] for pt in boundPts])
+		xmax = max(pt[0] for pt in boundPts)
+		ymin = min(pt[1] for pt in boundPts)
 		ymax = max([pt[1] for pt in boundPts])
-		zmin = min([pt[2] for pt in boundPts])
+		zmin = min(pt[2] for pt in boundPts)
 		zmax = max([pt[2] for pt in boundPts])
 		return BBOX(xmin=xmin, ymin=ymin, zmin=zmin, xmax=xmax, ymax=ymax, zmax=zmax)
 
@@ -170,10 +164,7 @@ class getBBOX():
 		union of bounding box of all objects containing in the scene'''
 		#objs = scn.collection.objects
 		objs = [obj for obj in scn.collection.all_objects if obj.empty_display_type != 'IMAGE']
-		if len(objs) == 0:
-			scnBbox = BBOX(0,0,0,0,0,0)
-		else:
-			scnBbox = cls.fromObj(objs[0])
+		scnBbox = BBOX(0,0,0,0,0,0) if not objs else cls.fromObj(objs[0])
 		for obj in objs:
 			bbox = cls.fromObj(obj)
 			scnBbox += bbox
@@ -183,11 +174,11 @@ class getBBOX():
 	def fromBmesh(bm):
 		'''Create a 3D bounding box from a bmesh object'''
 		xmin = min([pt.co.x for pt in bm.verts])
-		xmax = max([pt.co.x for pt in bm.verts])
+		xmax = max(pt.co.x for pt in bm.verts)
 		ymin = min([pt.co.y for pt in bm.verts])
-		ymax = max([pt.co.y for pt in bm.verts])
+		ymax = max(pt.co.y for pt in bm.verts)
 		zmin = min([pt.co.z for pt in bm.verts])
-		zmax = max([pt.co.z for pt in bm.verts])
+		zmax = max(pt.co.z for pt in bm.verts)
 		#
 		return BBOX(xmin=xmin, ymin=ymin, zmin=zmin, xmax=xmax, ymax=ymax, zmax=zmax)
 

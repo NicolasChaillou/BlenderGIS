@@ -112,7 +112,7 @@ class IMPORTGIS_OT_shapefile_props_dialog(Operator):
 			log.warning("Unable to read shapefile fields", exc_info=True)
 			return fieldsItems
 		fields = [field for field in shp.fields if field[0] != 'DeletionFlag'] #ignore default DeletionFlag field
-		for i, field in enumerate(fields):
+		for field in fields:
 			#put each item in a tuple (key, label, tooltip)
 			fieldsItems.append( (field[0], field[0], '') )
 		return fieldsItems
@@ -122,12 +122,8 @@ class IMPORTGIS_OT_shapefile_props_dialog(Operator):
 		return PredefCRS.getEnumItems()
 
 	def listObjects(self, context):
-		objs = []
-		for index, object in enumerate(bpy.context.scene.objects):
-			if object.type == 'MESH':
-				#put each object in a tuple (key, label, tooltip) and add this to the objects list
-				objs.append((object.name, object.name, "Object named " + object.name))
-		return objs
+		return [(object.name, object.name, "Object named " + object.name)
+		        for object in bpy.context.scene.objects if object.type == 'MESH']
 
 	reprojection: BoolProperty(
 			name="Specifiy shapefile CRS",
@@ -276,14 +272,10 @@ class IMPORTGIS_OT_shapefile_props_dialog(Operator):
 			self.report({'ERROR'}, "Scene georef is broken, please fix it beforehand")
 			return {'CANCELLED'}
 
-		if geoscn.isGeoref:
-			if self.reprojection:
-				shpCRS = self.shpCRS
-			else:
-				shpCRS = geoscn.crs
-		else:
+		if geoscn.isGeoref and self.reprojection or not geoscn.isGeoref:
 			shpCRS = self.shpCRS
-
+		else:
+			shpCRS = geoscn.crs
 		try:
 			bpy.ops.importgis.shapefile('INVOKE_DEFAULT', filepath=self.filepath, shpCRS=shpCRS, elevSource=self.vertsElevSource,
 				fieldElevName=elevField, objElevName=objElevName, fieldExtrudeName=extrudField, fieldObjName=nameField,

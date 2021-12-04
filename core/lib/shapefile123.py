@@ -44,43 +44,38 @@ else:
     from itertools import izip
 
 def b(v):
-    if PYTHON3:
-        if isinstance(v, str):
-            # For python 3 encode str to bytes.
-            return v.encode('utf-8')
-        elif isinstance(v, bytes):
-            # Already bytes.
-            return v
-        else:
-            # Error.
-            raise Exception('Unknown input type')
-    else:
-        # For python 2 assume str passed in and return str.
+    if PYTHON3 and isinstance(v, str):
+        # For python 3 encode str to bytes.
+        return v.encode('utf-8')
+    elif PYTHON3 and isinstance(v, bytes) or not PYTHON3:
+        # Already bytes.
         return v
+    else:
+        # Error.
+        raise Exception('Unknown input type')
 
 def u(v):
-    if PYTHON3:
-        # try/catch added 2014/05/07
-        # returned error on dbf of shapefile
-        # from www.naturalearthdata.com named
-        # "ne_110m_admin_0_countries".
-        # Just returning v as is seemed to fix
-        # the problem.  This function could
-        # be condensed further.
-        try:
-          if isinstance(v, bytes):
-              # For python 3 decode bytes to str.
-              return v.decode('utf-8')
-          elif isinstance(v, str):
-              # Already str.
-              return v
-          else:
-              # Error.
-              raise Exception('Unknown input type')
-        except: return v
-    else:
+    if not PYTHON3:
         # For python 2 assume str passed in and return str.
         return v
+    # try/catch added 2014/05/07
+    # returned error on dbf of shapefile
+    # from www.naturalearthdata.com named
+    # "ne_110m_admin_0_countries".
+    # Just returning v as is seemed to fix
+    # the problem.  This function could
+    # be condensed further.
+    try:
+      if isinstance(v, bytes):
+          # For python 3 decode bytes to str.
+          return v.decode('utf-8')
+      elif isinstance(v, str):
+          # Already str.
+          return v
+      else:
+          # Error.
+          raise Exception('Unknown input type')
+    except: return v
 
 def is_string(v):
     if PYTHON3:
@@ -127,68 +122,61 @@ class _Shape:
             }
         elif self.shapeType in [MULTIPOINT, MULTIPOINTM, MULTIPOINTZ]:
             return {
-            'type': 'MultiPoint',
-            'coordinates': tuple([tuple(p) for p in self.points])
+                'type': 'MultiPoint',
+                'coordinates': tuple(tuple(p) for p in self.points),
             }
+
         elif self.shapeType in [POLYLINE, POLYLINEM, POLYLINEZ]:
             if len(self.parts) == 1:
                 return {
-                'type': 'LineString',
-                'coordinates': tuple([tuple(p) for p in self.points])
+                    'type': 'LineString',
+                    'coordinates': tuple(tuple(p) for p in self.points),
                 }
-            else:
-                ps = None
-                coordinates = []
-                for part in self.parts:
-                    if ps == None:
-                        ps = part
-                        continue
-                    else:
-                        coordinates.append(tuple([tuple(p) for p in self.points[ps:part]]))
-                        ps = part
-                else:
-                    coordinates.append(tuple([tuple(p) for p in self.points[part:]]))
-                return {
-                'type': 'MultiLineString',
-                'coordinates': tuple(coordinates)
-                }
+
+            ps = None
+            coordinates = []
+            for part in self.parts:
+                if ps != None:
+                    coordinates.append(tuple(tuple(p) for p in self.points[ps:part]))
+                ps = part
+            coordinates.append(tuple(tuple(p) for p in self.points[part:]))
+            return {
+            'type': 'MultiLineString',
+            'coordinates': tuple(coordinates)
+            }
         elif self.shapeType in [POLYGON, POLYGONM, POLYGONZ]:
             if len(self.parts) == 1:
                 return {
-                'type': 'Polygon',
-                'coordinates': (tuple([tuple(p) for p in self.points]),)
-                }
-            else:
-                ps = None
-                coordinates = []
-                for part in self.parts:
-                    if ps == None:
-                        ps = part
-                        continue
-                    else:
-                        coordinates.append(tuple([tuple(p) for p in self.points[ps:part]]))
-                        ps = part
-                else:
-                    coordinates.append(tuple([tuple(p) for p in self.points[part:]]))
-                polys = []
-                poly = [coordinates[0]]
-                for coord in coordinates[1:]:
-                    if signed_area(coord) < 0:
-                        polys.append(poly)
-                        poly = [coord]
-                    else:
-                        poly.append(coord)
-                polys.append(poly)
-                if len(polys) == 1:
-                    return {
                     'type': 'Polygon',
-                    'coordinates': tuple(polys[0])
-                    }
-                elif len(polys) > 1:
-                    return {
-                    'type': 'MultiPolygon',
-                    'coordinates': polys
-                    }
+                    'coordinates': (tuple(tuple(p) for p in self.points),),
+                }
+
+            ps = None
+            coordinates = []
+            for part in self.parts:
+                if ps != None:
+                    coordinates.append(tuple(tuple(p) for p in self.points[ps:part]))
+                ps = part
+            coordinates.append(tuple(tuple(p) for p in self.points[part:]))
+            polys = []
+            poly = [coordinates[0]]
+            for coord in coordinates[1:]:
+                if signed_area(coord) < 0:
+                    polys.append(poly)
+                    poly = [coord]
+                else:
+                    poly.append(coord)
+            polys.append(poly)
+            if len(polys) == 1:
+                return {
+                'type': 'Polygon',
+                'coordinates': tuple(polys[0])
+                }
+            elif len(polys) > 1:
+                return {
+                'type': 'MultiPolygon',
+                'coordinates': polys
+                }
 
 class _ShapeRecord:
     """A shape object of any type."""
@@ -229,25 +217,22 @@ class Reader:
         self.fields = []
         self.__dbfHdrLength = 0
         # See if a shapefile name was passed as an argument
-        if len(args) > 0:
-            if is_string(args[0]):
-                self.load(args[0])
-                return
+        if len(args) > 0 and is_string(args[0]):
+            self.load(args[0])
+            return
         if "shp" in kwargs.keys():
             if hasattr(kwargs["shp"], "read"):
                 self.shp = kwargs["shp"]
                 if hasattr(self.shp, "seek"):
                     self.shp.seek(0)
-            if "shx" in kwargs.keys():
-                if hasattr(kwargs["shx"], "read"):
-                    self.shx = kwargs["shx"]
-                    if hasattr(self.shx, "seek"):
-                        self.shx.seek(0)
-        if "dbf" in kwargs.keys():
-            if hasattr(kwargs["dbf"], "read"):
-                self.dbf = kwargs["dbf"]
-                if hasattr(self.dbf, "seek"):
-                    self.dbf.seek(0)
+            if "shx" in kwargs.keys() and hasattr(kwargs["shx"], "read"):
+                self.shx = kwargs["shx"]
+                if hasattr(self.shx, "seek"):
+                    self.shx.seek(0)
+        if "dbf" in kwargs.keys() and hasattr(kwargs["dbf"], "read"):
+            self.dbf = kwargs["dbf"]
+            if hasattr(self.dbf, "seek"):
+                self.dbf.seek(0)
         if self.shp or self.dbf:        
             self.load()
         else:
@@ -353,7 +338,7 @@ class Reader:
             (zmin, zmax) = unpack("<2d", f.read(16))
             record.z = _Array('d', unpack("<%sd" % nPoints, f.read(nPoints * 8)))
         # Read m extremes and values if header m values do not equal 0.0
-        if shapeType in (13,15,18,23,25,28,31) and not 0.0 in self.measure:
+        if shapeType in (13, 15, 18, 23, 25, 28, 31) and 0.0 not in self.measure:
             (mmin, mmax) = unpack("<2d", f.read(16))
             # Measure values less than -10e38 are nodata values according to the spec
             record.m = []
@@ -390,11 +375,11 @@ class Reader:
             numRecords = shxRecordLength // 8
             # Jump to the first record.
             shx.seek(100)
-            for r in range(numRecords):
+            for _ in range(numRecords):
                 # Offsets are 16-bit words just like the file length
                 self._offsets.append(unpack(">i", shx.read(4))[0] * 2)
                 shx.seek(shx.tell() + 4)
-        if not i == None:
+        if not i is None:
             return self._offsets[i]
 
     def shape(self, i=0):
@@ -453,7 +438,7 @@ class Reader:
         dbf = self.dbf
         headerLength = self.__dbfHeaderLength()
         numFields = (headerLength - 33) // 32
-        for field in range(numFields):
+        for _ in range(numFields):
             fieldDesc = list(unpack("<11sc4xBB14x", dbf.read(32)))
             name = 0
             idx = 0
@@ -540,7 +525,7 @@ class Reader:
         records = []
         f = self.__getFileObj(self.dbf)
         f.seek(self.__dbfHeaderLength())
-        for i in range(self.numRecords):
+        for _ in range(self.numRecords):
             r = self.__record()
             if r:
                 records.append(r)
@@ -553,7 +538,7 @@ class Reader:
             self.__dbfHeader()
         f = self.__getFileObj(self.dbf)
         f.seek(self.__dbfHeaderLength())
-        for i in xrange(self.numRecords):
+        for _ in xrange(self.numRecords):
             r = self.__record()
             if r:
                 yield r
@@ -758,7 +743,7 @@ class Writer:
         numRecs = len(self.records)
         numFields = len(self.fields)
         headerLength = numFields * 32 + 33
-        recordLength = sum([int(field[2]) for field in self.fields]) + 1
+        recordLength = sum(int(field[2]) for field in self.fields) + 1
         header = pack('<BBBBLHH20x', version, year, month, day, numRecs,
                 headerLength, recordLength)
         f.write(header)
@@ -1048,7 +1033,7 @@ class Writer:
             self.saveShx(shx)
         if dbf:
             self.saveDbf(dbf)
-        elif not shp and not shx and not dbf:
+        elif not shp and not shx:
             generated = False
             if not target:
                 temp = tempfile.NamedTemporaryFile(prefix="shapefile_",dir=os.getcwd())
@@ -1087,13 +1072,10 @@ class Editor(Writer):
         # shape, part, point
         if shape and part and point:
             del self._shapes[shape][part][point]
-        # shape, part
-        elif shape and part and not point:
+        elif shape and part:
             del self._shapes[shape][part]
-        # shape
-        elif shape and not part and not point:
+        elif shape and not point:
             del self._shapes[shape]
-        # point
         elif not shape and not part and point:
             for s in self._shapes:
                 if s.shapeType == 1:
@@ -1101,12 +1083,10 @@ class Editor(Writer):
                 else:
                     for part in s.parts:
                         del s[part][point]
-        # part, point
         elif not shape and part and point:
             for s in self._shapes:
                 del s[part][point]
-        # part
-        elif not shape and part and not point:
+        elif not shape and part:
             for s in self._shapes:
                 del s[part]
 
@@ -1128,8 +1108,7 @@ class Editor(Writer):
             if z: p[2] = z
             if m: p[3] = m
             self._shapes[shape][part][point] = p
-        # shape, part
-        elif shape and part and not point:
+        elif shape and part:
             try: self._shapes[shape]
             except IndexError: self._shapes.append([])
             try: self._shapes[shape][part]
@@ -1142,8 +1121,7 @@ class Editor(Writer):
                 if z: p[2] = z
                 if m: p[3] = m
                 self._shapes[shape][part][i] = p
-        # shape
-        elif shape and not part and not point:
+        elif shape and not point:
             try: self._shapes[shape]
             except IndexError: self._shapes.append([])
 

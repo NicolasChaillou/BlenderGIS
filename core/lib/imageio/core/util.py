@@ -196,8 +196,7 @@ def asarray(a):
     if isinstance(a, np.ndarray):
         if IS_PYPY:  # pragma: no cover 
             a = a.copy()  # pypy has issues with base views
-        plain = a.view(type=np.ndarray)
-        return plain
+        return a.view(type=np.ndarray)
     return np.asarray(a)
 
 
@@ -492,9 +491,7 @@ def resource_dirs():
     directory (for frozen apps), and may include additional directories
     in the future.
     """
-    dirs = []
-    # Resource dir baked in the package
-    dirs.append(os.path.abspath(os.path.join(THIS_DIR, '..', 'resources')))
+    dirs = [os.path.abspath(os.path.join(THIS_DIR, '..', 'resources'))]
     # Appdata directory
     try:
         dirs.append(appdata_dir('imageio'))

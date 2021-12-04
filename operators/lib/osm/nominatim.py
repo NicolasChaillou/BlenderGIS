@@ -34,6 +34,4 @@ def nominatimQuery(
 
     response = urlopen(req, timeout=TIMEOUT)
 
-    r = json.loads(response.read().decode('utf-8'))
-
-    return r
+    return json.loads(response.read().decode('utf-8'))

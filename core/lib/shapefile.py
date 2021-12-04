@@ -196,68 +196,61 @@ class Shape(object):
             }
         elif self.shapeType in [MULTIPOINT, MULTIPOINTM, MULTIPOINTZ]:
             return {
-            'type': 'MultiPoint',
-            'coordinates': tuple([tuple(p) for p in self.points])
+                'type': 'MultiPoint',
+                'coordinates': tuple(tuple(p) for p in self.points),
             }
+
         elif self.shapeType in [POLYLINE, POLYLINEM, POLYLINEZ]:
             if len(self.parts) == 1:
                 return {
-                'type': 'LineString',
-                'coordinates': tuple([tuple(p) for p in self.points])
+                    'type': 'LineString',
+                    'coordinates': tuple(tuple(p) for p in self.points),
                 }
-            else:
-                ps = None
-                coordinates = []
-                for part in self.parts:
-                    if ps == None:
-                        ps = part
-                        continue
-                    else:
-                        coordinates.append(tuple([tuple(p) for p in self.points[ps:part]]))
-                        ps = part
-                else:
-                    coordinates.append(tuple([tuple(p) for p in self.points[part:]]))
-                return {
-                'type': 'MultiLineString',
-                'coordinates': tuple(coordinates)
-                }
+
+            ps = None
+            coordinates = []
+            for part in self.parts:
+                if ps != None:
+                    coordinates.append(tuple(tuple(p) for p in self.points[ps:part]))
+                ps = part
+            coordinates.append(tuple(tuple(p) for p in self.points[part:]))
+            return {
+            'type': 'MultiLineString',
+            'coordinates': tuple(coordinates)
+            }
         elif self.shapeType in [POLYGON, POLYGONM, POLYGONZ]:
             if len(self.parts) == 1:
                 return {
-                'type': 'Polygon',
-                'coordinates': (tuple([tuple(p) for p in self.points]),)
-                }
-            else:
-                ps = None
-                rings = []
-                for part in self.parts:
-                    if ps == None:
-                        ps = part
-                        continue
-                    else:
-                        rings.append(tuple([tuple(p) for p in self.points[ps:part]]))
-                        ps = part
-                else:
-                    rings.append(tuple([tuple(p) for p in self.points[part:]]))
-                polys = []
-                poly = [rings[0]]
-                for ring in rings[1:]:
-                    if signed_area(ring) < 0:
-                        polys.append(poly)
-                        poly = [ring]
-                    else:
-                        poly.append(ring)
-                polys.append(poly)
-                if len(polys) == 1:
-                    return {
                     'type': 'Polygon',
-                    'coordinates': tuple(polys[0])
-                    }
-                elif len(polys) > 1:
-                    return {
-                    'type': 'MultiPolygon',
-                    'coordinates': polys
-                    }
+                    'coordinates': (tuple(tuple(p) for p in self.points),),
+                }
+
+            ps = None
+            rings = []
+            for part in self.parts:
+                if ps != None:
+                    rings.append(tuple(tuple(p) for p in self.points[ps:part]))
+                ps = part
+            rings.append(tuple(tuple(p) for p in self.points[part:]))
+            polys = []
+            poly = [rings[0]]
+            for ring in rings[1:]:
+                if signed_area(ring) < 0:
+                    polys.append(poly)
+                    poly = [ring]
+                else:
+                    poly.append(ring)
+            polys.append(poly)
+            if len(polys) == 1:
+                return {
+                'type': 'Polygon',
+                'coordinates': tuple(polys[0])
+                }
+            elif len(polys) > 1:
+                return {
+                'type': 'MultiPolygon',
+                'coordinates': polys
+                }
         else:
             raise Exception('Shape type "%s" cannot be represented as GeoJSON.' % SHAPETYPE_LOOKUP[self.shapeType])
 
@@ -284,7 +277,7 @@ class Shape(object):
         else:
             raise Exception("Cannot create Shape from GeoJSON type '%s'" % geojType)
         shape.shapeType = shapeType
-        
+
         # set points and parts
         if geojType == "Point":
             shape.points = [ geoj["coordinates"] ]
@@ -297,10 +290,10 @@ class Shape(object):
             parts = []
             index = 0
             for i,ext_or_hole in enumerate(geoj["coordinates"]):
-                if i == 0 and not signed_area(ext_or_hole) < 0:
+                if i == 0 and signed_area(ext_or_hole) >= 0:
                     # flip exterior direction
                     ext_or_hole = list(reversed(ext_or_hole))
-                elif i > 0 and not signed_area(ext_or_hole) >= 0:
+                elif i > 0 and signed_area(ext_or_hole) < 0:
                     # flip hole direction
                     ext_or_hole = list(reversed(ext_or_hole))
                 points.extend(ext_or_hole)
@@ -324,10 +317,10 @@ class Shape(object):
             index = 0
             for polygon in geoj["coordinates"]:
                 for i,ext_or_hole in enumerate(polygon):
-                    if i == 0 and not signed_area(ext_or_hole) < 0:
+                    if i == 0 and signed_area(ext_or_hole) >= 0:
                         # flip exterior direction
                         ext_or_hole = list(reversed(ext_or_hole))
-                    elif i > 0 and not signed_area(ext_or_hole) >= 0:
+                    elif i > 0 and signed_area(ext_or_hole) < 0:
                         # flip hole direction
                         ext_or_hole = list(reversed(ext_or_hole))
                     points.extend(ext_or_hole)
@@ -366,10 +359,7 @@ class _Record(list):
         :param oid: The object id, an int (optional)
         """
         self.__field_positions = field_positions
-        if oid is not None:
-            self.__oid = oid
-        else:
-            self.__oid = -1
+        self.__oid = oid if oid is not None else -1
         list.__init__(self, values)
 
     def __getattr__(self, item):
@@ -455,7 +445,7 @@ class _Record(list):
         Returns this Record as a dictionary using the field names as keys
         :return: dict
         """
-        return dict((f, self[i]) for f, i in self.__field_positions.items())
+        return {f: self[i] for f, i in self.__field_positions.items()}
 
     def __repr__(self):
         return 'Record #{}: {}'.format(self.__oid, list(self))
@@ -548,10 +538,9 @@ class Reader(object):
         self.encoding = kwargs.pop('encoding', 'utf-8')
         self.encodingErrors = kwargs.pop('encodingErrors', 'strict')
         # See if a shapefile name was passed as an argument
-        if len(args) > 0:
-            if is_string(args[0]):
-                self.load(args[0])
-                return
+        if len(args) > 0 and is_string(args[0]):
+            self.load(args[0])
+            return
         if "shp" in kwargs.keys():
             if hasattr(kwargs["shp"], "read"):
                 self.shp = kwargs["shp"]
@@ -560,22 +549,20 @@ class Reader(object):
                     self.shp.seek(0)
                 except (NameError, io.UnsupportedOperation):
                     self.shp = io.BytesIO(self.shp.read())
-            if "shx" in kwargs.keys():
-                if hasattr(kwargs["shx"], "read"):
-                    self.shx = kwargs["shx"]
-                    # Copy if required
-                    try:
-                        self.shx.seek(0)
-                    except (NameError, io.UnsupportedOperation):
-                        self.shx = io.BytesIO(self.shx.read())
-        if "dbf" in kwargs.keys():
-            if hasattr(kwargs["dbf"], "read"):
-                self.dbf = kwargs["dbf"]
+            if "shx" in kwargs.keys() and hasattr(kwargs["shx"], "read"):
+                self.shx = kwargs["shx"]
                 # Copy if required
                 try:
-                    self.dbf.seek(0)
+                    self.shx.seek(0)
                 except (NameError, io.UnsupportedOperation):
-                    self.dbf = io.BytesIO(self.dbf.read())
+                    self.shx = io.BytesIO(self.shx.read())
+        if "dbf" in kwargs.keys() and hasattr(kwargs["dbf"], "read"):
+            self.dbf = kwargs["dbf"]
+            # Copy if required
+            try:
+                self.dbf.seek(0)
+            except (NameError, io.UnsupportedOperation):
+                self.dbf = io.BytesIO(self.dbf.read())
         if self.shp or self.dbf:        
             self.load()
         else:
@@ -612,8 +599,7 @@ class Reader(object):
 
     def __iter__(self):
         """Iterates through the shapes/records in the shapefile."""
-        for shaperec in self.iterShapeRecords():
-            yield shaperec
+        yield from self.iterShapeRecords()
 
     @property
     def __geo_interface__(self):
@@ -807,10 +793,7 @@ class Reader(object):
             else:
                 m = NODATA
             # Measure values less than -10e38 are nodata values according to the spec
-            if m > NODATA:
-                record.m = [m]
-            else:
-                record.m = [None]
+            record.m = [m] if m > NODATA else [None]
         # Seek to the end of this record as defined by the record header because
         # the shapefile spec doesn't require the actual content to meet the header
         # definition.  Probably allowed for lazy feature deletion. 
@@ -836,7 +819,7 @@ class Reader(object):
             if sys.byteorder != 'big':
                  shxRecords.byteswap()
             self._offsets = [2 * el for el in shxRecords[::2]]
-        if not i == None:
+        if not i is None:
             return self._offsets[i]
 
     def shape(self, i=0):
@@ -888,9 +871,9 @@ class Reader(object):
                 unpack("<xxxxLHH20x", dbf.read(32))
         # read fields
         numFields = (self.__dbfHdrLength - 33) // 32
-        for field in range(numFields):
+        name = 0
+        for _ in range(numFields):
             fieldDesc = list(unpack("<11sc4xBB14x", dbf.read(32)))
-            name = 0
             idx = 0
             if b"\x00" in fieldDesc[name]:
                 idx = fieldDesc[name].index(b"\x00")
@@ -909,7 +892,7 @@ class Reader(object):
         self.__recStruct = Struct(fmt)
 
         # Store the field positions
-        self.__fieldposition_lookup = dict((f[0], i) for i, f in enumerate(self.fields[1:]))
+        self.__fieldposition_lookup = {f[0]: i for i, f in enumerate(self.fields[1:])}
 
     def __recordFmt(self):
         """Calculates the format and size of a .dbf record."""
@@ -973,15 +956,12 @@ class Reader(object):
                         value = value.strip()
             elif typ == 'L':
                 # logical: 1 byte - initialized to 0x20 (space) otherwise T or F.
-                if value == b" ":
-                    value = None # space means missing or not yet set
+                if value != b" " and value in b'YyTt1':
+                    value = True
+                elif value != b" " and value in b'NnFf0':
+                    value = False
                 else:
-                    if value in b'YyTt1':
-                        value = True
-                    elif value in b'NnFf0':
-                        value = False
-                    else:
-                        value = None # unknown value is set to missing
+                    value = None # unknown value is set to missing
             else:
                 # anything else is forced to string/unicode
                 value = u(value, self.encoding, self.encodingErrors)
@@ -1021,7 +1001,7 @@ class Reader(object):
             self.__dbfHeader()
         f = self.__getFileObj(self.dbf)
         f.seek(self.__dbfHdrLength)
-        for i in xrange(self.numRecords):
+        for _ in xrange(self.numRecords):
             r = self.__record()
             if r:
                 yield r
@@ -1167,15 +1147,14 @@ class Writer(object):
     def __bbox(self, s):
         x = []
         y = []
-        if len(s.points) > 0:
-            px, py = list(zip(*s.points))[:2]
-            x.extend(px)
-            y.extend(py)
-        else:
+        if len(s.points) <= 0:
             # this should not happen.
             # any shape that is not null should have at least one point, and only those should be sent here. 
             # could also mean that earlier code failed to add points to a non-null shape. 
             raise Exception("Cannot create bbox. Expected a valid shape with at least one point. Got a shape of type '%s' and 0 points." % s.shapeType)
+        px, py = list(zip(*s.points))[:2]
+        x.extend(px)
+        y.extend(py)
         bbox = [min(x), min(y), max(x), max(y)]
         # update global
         if self._bbox:
@@ -1281,12 +1260,7 @@ class Writer(object):
         else:
             f.write(pack("<4d", 0,0,0,0))
         # Elevation
-        if self.shapeType in (11,13,15,18):
-            # Z values are present in Z type
-            zbox = self.zbox()
-        else:
-            # As per the ESRI shapefile spec, the zbox for non-Z type shapefiles are set to 0s
-            zbox = [0,0]
+        zbox = self.zbox() if self.shapeType in (11,13,15,18) else [0,0]
         # Measure
         if self.shapeType in (11,13,15,18,21,23,25,28,31):
             # M values are present in M or Z type
@@ -1317,7 +1291,7 @@ class Writer(object):
         if headerLength >= 65535:
             raise ShapefileException(
                     "Shapefile dbf header length exceeds maximum length.")
-        recordLength = sum([int(field[2]) for field in self.fields]) + 1
+        recordLength = sum(int(field[2]) for field in self.fields) + 1
         header = pack('<BBBBLHH20x', version, year, month, day, numRecs,
                 headerLength, recordLength)
         f.write(header)
@@ -1362,7 +1336,7 @@ class Writer(object):
         # Shape Type
         if self.shapeType is None and s.shapeType != NULL:
             self.shapeType = s.shapeType
-        if s.shapeType != NULL and s.shapeType != self.shapeType:
+        if s.shapeType not in [NULL, self.shapeType]:
             raise Exception("The shape's type (%s) must match the type of the shapefile (%s)." % (s.shapeType, self.shapeType))
         f.write(pack("<i", s.shapeType))
 
@@ -1573,20 +1547,16 @@ class Writer(object):
                     value = '{:04d}{:02d}{:02d}'.format(*value)
                 elif value in MISSING:
                     value = b'0' * 8 # QGIS NULL for date type
-                elif is_string(value) and len(value) == 8:
-                    pass # value is already a date string
-                else:
+                elif not is_string(value) or len(value) != 8:
                     raise ShapefileException("Date values must be either a datetime.date object, a list, a YYYYMMDD string, or a missing value.")
             elif fieldType == 'L':
                 # logical: 1 byte - initialized to 0x20 (space) otherwise T or F.
-                if value in MISSING:
+                if value in MISSING or value not in [True, 1, False, 0]:
                     value = b' ' # missing is set to space
-                elif value in [True,1]:
+                elif value in [True, 1]:
                     value = b'T'
-                elif value in [False,0]:
-                    value = b'F'
                 else:
-                    value = b' ' # unknown is set to space
+                    value = b'F'
             else:
                 # anything else is forced to string, truncated to the length of the field
                 value = b(value, self.encoding, self.encodingErrors)[:size].ljust(size)
@@ -1865,8 +1835,7 @@ def test(**kwargs):
             if sys.version_info[0] == 2:
                 got = re.sub("u'(.*?)'", "'\\1'", got)
                 got = re.sub('u"(.*?)"', '"\\1"', got)
-            res = doctest.OutputChecker.check_output(self, want, got, optionflags)
-            return res
+            return doctest.OutputChecker.check_output(self, want, got, optionflags)
         def summarize(self):
             doctest.OutputChecker.summarize(True)
 

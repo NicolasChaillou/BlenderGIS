@@ -55,13 +55,12 @@ class Color(object):
 					self.from_hsv(*values)
 
 	def __str__(self):
-		if self.data is not None:
-			strRGB = 'RGB ' + str(self.RGB)
-			strHSV = 'HSV ' + str(self.HSV)
-			strAlpha = 'Alpha ' + str(self.alpha)
-			return strRGB + ' - ' + strHSV + ' - ' + strAlpha
-		else:
+		if self.data is None:
 			return "No color defined"
+		strRGB = 'RGB ' + str(self.RGB)
+		strHSV = 'HSV ' + str(self.HSV)
+		strAlpha = 'Alpha ' + str(self.alpha)
+		return strRGB + ' - ' + strHSV + ' - ' + strAlpha
 
 	def __eq__(self, other):
 		return self.data == other.data
@@ -83,7 +82,7 @@ class Color(object):
 	@property
 	def RGBA(self): #values range from 0 to 255
 		if self.data is not None:
-			return tuple([int(v*255) for v in self.rgba])
+			return tuple(int(v*255) for v in self.rgba)
 		else:
 			return None
 	@property
@@ -94,11 +93,10 @@ class Color(object):
 			return None
 	@property
 	def HSVA(self): #H ranges from 0° to 360°. Other values range from 0 to 100%
-		if self.data is not None:
-			h, s, v, a = self.hsva
-			return tuple([h*360, s*100, v*100, a*100])
-		else:
+		if self.data is None:
 			return None
+		h, s, v, a = self.hsva
+		return tuple([h*360, s*100, v*100, a*100])
 	@property
 	def hsva(self): #values range from 0 to 1
 		if self.data is not None:
@@ -120,11 +118,10 @@ class Color(object):
 			return None
 	@property
 	def HSV(self):
-		if self.data is not None:
-			h, s, v = self.hsv
-			return tuple([h*360, s*100, v*100])
-		else:
+		if self.data is None:
 			return None
+		h, s, v = self.hsv
+		return tuple([h*360, s*100, v*100])
 	@property
 	def hsv(self):
 		if self.data is not None:
@@ -134,26 +131,6 @@ class Color(object):
 
 	#another way to get color value (dictionary output possible)
 	def getColor(self, space='RGB', asDict=False):
-		if space == 'RGB':
-			if asDict:
-				return {key:self.RGB[i] for i, key in enumerate(space)}
-			else:
-				return self.RGB
-		elif space == 'RGBA':
-			if asDict:
-				return {key:self.RGBA[i] for i, key in enumerate(space)}
-			else:
-				return self.RGBA
-		elif space == 'rgba':
-			if asDict:
-				return {key:self.rgba[i] for i, key in enumerate(space)}
-			else:
-				return self.rgba
-		elif space == 'rgb':
-			if asDict:
-				return {key:self.rgb[i] for i, key in enumerate(space)}
-			else:
-				return self.rgb
 		if space == 'HSV':
 			if asDict:
 				return {key:self.HSV[i] for i, key in enumerate(space)}
@@ -164,16 +141,37 @@ class Color(object):
 				return {key:self.HSVA[i] for i, key in enumerate(space)}
 			else:
 				return self.HSVA
-		elif space == 'hsva':
+		elif space == 'RGB':
 			if asDict:
-				return {key:self.hsva[i] for i, key in enumerate(space)}
+				return {key:self.RGB[i] for i, key in enumerate(space)}
 			else:
-				return self.hsva
+				return self.RGB
+		elif space == 'RGBA':
+			if asDict:
+				return {key:self.RGBA[i] for i, key in enumerate(space)}
+			else:
+				return self.RGBA
 		elif space == 'hsv':
 			if asDict:
 				return {key:self.hsv[i] for i, key in enumerate(space)}
 			else:
 				return self.hsv
+
+		elif space == 'hsva':
+			if asDict:
+				return {key:self.hsva[i] for i, key in enumerate(space)}
+			else:
+				return self.hsva
+		elif space == 'rgb':
+			if asDict:
+				return {key:self.rgb[i] for i, key in enumerate(space)}
+			else:
+				return self.rgb
+		elif space == 'rgba':
+			if asDict:
+				return {key:self.rgba[i] for i, key in enumerate(space)}
+			else:
+				return self.rgba
 
 	#You can create Color object in many ways:
 	# Color.from_rgb(0, 1, 1, 1) - passing arguments
@@ -292,9 +290,8 @@ class Gradient():
 	def addStop(self, position, color, reorder=True):
 		if not self.permissive: #permissive option allows discrete color ramp definition
 			#avoid same color in two following stops
-			if len(self.colors) >= 1:
-				if color == self.colors[-1]:
-					return False
+			if len(self.colors) >= 1 and color == self.colors[-1]:
+				return False
 			#avoid duplicate position
 			if position in self.positions:
 				return False
@@ -354,12 +351,15 @@ class Gradient():
 		if method not in ['DISCRETE', 'NEAREST', 'LINEAR', 'SPLINE']:
 			method = 'LINEAR'
 		#check color space
-		if colorSpace in ['RGB', 'RGBA', 'rgb', 'rgba']:
+		if colorSpace in ['RGB', 'RGBA', 'rgb', 'rgba'] or colorSpace not in [
+		    'HSV',
+		    'HSVA',
+		    'hsv',
+		    'hsva',
+		]:
 			colorSpace = 'rgba' #we will work with normalized values
-		elif colorSpace in ['HSV', 'HSVA', 'hsv', 'hsva']:
-			colorSpace = 'hsva'
 		else:
-			colorSpace = 'rgba' #default
+			colorSpace = 'hsva'
 		#check position
 		self.sortStops()
 		positions = self.positions
@@ -422,7 +422,7 @@ class Gradient():
 				else:
 					y = akima.interpolate(xData, yData, [pos])[0]
 				#Constrain result between 0-1
-				y = 1 if y>1 else 0 if y<0 else y
+				y = 1 if y>1 else max(y, 0)
 				#append
 				interpolateValues.append(round(y,2))
 			return Color(interpolateValues, colorSpace)
@@ -433,7 +433,7 @@ class Gradient():
 		ramp = Gradient(permissive=True)#permissive needed because discrete interpo can return same color for 2 or more following stops
 		offset = 1/(n-1)
 		position = 0
-		for i in range(n):
+		for _ in range(n):
 			color = self.evaluate(position, interpoSpace, interpoMethod)
 			ramp.addStop(position, color, reorder=False)
 			position += offset
@@ -472,9 +472,6 @@ class Gradient():
 		# etree doesn't have pretty xml function, so use minidom tu get a pretty xml ...
 		reparsed = parseString(xmlstr)
 		xmlstr = reparsed.toprettyxml()
-		# write to file
-		f = open(svgPath,"w")
-		f.write(xmlstr)
-		f.close()
-
+		with open(svgPath,"w") as f:
+			f.write(xmlstr)
 		return

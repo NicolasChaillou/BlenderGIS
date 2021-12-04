@@ -98,10 +98,9 @@ class NpImage():
 		self.noData = noData
 
 		self.georef = georef
-		if self.subBoxPx is not None and self.georef is not None:
-			if adjustGeoref:
-				self.georef.setSubBoxPx(subBoxPx)
-				self.georef.applySubBox()
+		if self.subBoxPx is not None and self.georef is not None and adjustGeoref:
+			self.georef.setSubBoxPx(subBoxPx)
+			self.georef.applySubBox()
 
 		#init from another NpImage instance
 		if isinstance(data, NpImage):
@@ -129,14 +128,12 @@ class NpImage():
 				raise ValueError('Unable to load image data')
 
 		#init from GDAL dataset instance
-		if HAS_GDAL:
-			if isinstance(data, gdal.Dataset):
-				self.data = self._npFromGDAL(data)
+		if HAS_GDAL and isinstance(data, gdal.Dataset):
+			self.data = self._npFromGDAL(data)
 
 		#init from PIL Image instance
-		if HAS_PIL:
-			if Image.isImageType(data):
-				self.data = self._npFromPIL(data)
+		if HAS_PIL and Image.isImageType(data):
+			self.data = self._npFromPIL(data)
 
 		if self.data is None:
 			raise ValueError('Unable to load image data')
@@ -152,10 +149,7 @@ class NpImage():
 	@property
 	def isGeoref(self):
 		'''Flag if georef parameters have been extracted'''
-		if self.georef is not None:
-			return True
-		else:
-			return False
+		return self.georef is not None
 
 	@property
 	def nbBands(self):
@@ -179,10 +173,7 @@ class NpImage():
 
 	@property
 	def isFloat(self):
-		if self.dtype in ['float16', 'float32', 'float64']:
-			return True
-		else:
-			return False
+		return self.dtype in ['float16', 'float32', 'float64']
 
 	def getMin(self, bandIdx=0):
 		if self.nbBands == 1:
@@ -211,10 +202,7 @@ class NpImage():
 		if self.subBoxPx is not None:
 			x1, x2 = self.subBoxPx.xmin, self.subBoxPx.xmax+1
 			y1, y2 = self.subBoxPx.ymin, self.subBoxPx.ymax+1
-			if len(data.shape) == 2: #one band
-				data = data[y1:y2, x1:x2]
-			else:
-				data = data[y1:y2, x1:x2, :]
+			data = data[y1:y2, x1:x2] if len(data.shape) == 2 else data[y1:y2, x1:x2, :]
 			self.subBoxPx = None
 		return data
 
@@ -282,7 +270,7 @@ class NpImage():
 			if ctable is not None:
 				#Swap index values to their corresponding color (rgba)
 				nbColors = ctable.GetCount()
-				keys = np.array( [i for i in range(nbColors)] )
+				keys = np.array(list(range(nbColors)))
 				values = np.array( [ctable.GetColorEntry(i) for i in range(nbColors)] )
 				sortIdx = np.argsort(keys)
 				idx = np.searchsorted(keys, data, sorter=sortIdx)
@@ -420,7 +408,7 @@ class NpImage():
 
 		if img.isOneBand and self.isOneBand:
 			self.data[y:y+h, x:x+w] = data
-		elif (not img.isOneBand and self.isOneBand) or (img.isOneBand and not self.isOneBand):
+		elif not img.isOneBand and self.isOneBand or img.isOneBand:
 			raise ValueError('Paste error, cannot mix one band with multiband')
 
 		if self.hasAlpha:

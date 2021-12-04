@@ -114,7 +114,6 @@ class BigTiffWriter():
 			else:
 				self.ds.GetRasterBand(4).WriteArray(alpha, x, y)
 		else:
-			pass # replaced by fill method
 			'''
 			#make alpha band or internal mask fully opaque
 			h, w = data.shape[0], data.shape[1]

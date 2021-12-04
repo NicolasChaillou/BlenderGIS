@@ -554,13 +554,8 @@ class Node(Element):
         lat = data.get("lat")
         lon = data.get("lon")
 
-        attributes = {}
         ignore = ["type", "id", "lat", "lon", "tags"]
-        for n, v in data.items():
-            if n in ignore:
-                continue
-            attributes[n] = v
-
+        attributes = {n: v for n, v in data.items() if n not in ignore}
         return cls(node_id=node_id, lat=lat, lon=lon, tags=tags, attributes=attributes, result=result)
 
     @classmethod
@@ -603,13 +598,8 @@ class Node(Element):
         if lon is not None:
             lon = Decimal(lon)
 
-        attributes = {}
         ignore = ["id", "lat", "lon"]
-        for n, v in child.attrib.items():
-            if n in ignore:
-                continue
-            attributes[n] = v
-
+        attributes = {n: v for n, v in child.attrib.items() if n not in ignore}
         return cls(node_id=node_id, lat=lat, lon=lon, tags=tags, attributes=attributes, result=result)
 
 
@@ -728,13 +718,8 @@ class Way(Element):
         way_id = data.get("id")
         node_ids = data.get("nodes")
 
-        attributes = {}
         ignore = ["id", "nodes", "tags", "type"]
-        for n, v in data.items():
-            if n in ignore:
-                continue
-            attributes[n] = v
-
+        attributes = {n: v for n, v in data.items() if n not in ignore}
         return cls(way_id=way_id, attributes=attributes, node_ids=node_ids, tags=tags, result=result)
 
     @classmethod
@@ -779,13 +764,8 @@ class Way(Element):
         if way_id is not None:
             way_id = int(way_id)
 
-        attributes = {}
         ignore = ["id"]
-        for n, v in child.attrib.items():
-            if n in ignore:
-                continue
-            attributes[n] = v
-
+        attributes = {n: v for n, v in child.attrib.items() if n not in ignore}
         return cls(way_id=way_id, attributes=attributes, node_ids=node_ids, tags=tags, result=result)
 
 
@@ -850,13 +830,8 @@ class Relation(Element):
                         )
                     )
 
-        attributes = {}
         ignore = ["id", "members", "tags", "type"]
-        for n, v in data.items():
-            if n in ignore:
-                continue
-            attributes[n] = v
-
+        attributes = {n: v for n, v in data.items() if n not in ignore}
         return cls(rel_id=rel_id, attributes=attributes, members=members, tags=tags, result=result)
 
     @classmethod
@@ -905,13 +880,8 @@ class Relation(Element):
         if rel_id is not None:
             rel_id = int(rel_id)
 
-        attributes = {}
         ignore = ["id"]
-        for n, v in child.attrib.items():
-            if n in ignore:
-                continue
-            attributes[n] = v
-
+        attributes = {n: v for n, v in child.attrib.items() if n not in ignore}
         return cls(rel_id=rel_id, attributes=attributes, members=members, tags=tags, result=result)
 
 

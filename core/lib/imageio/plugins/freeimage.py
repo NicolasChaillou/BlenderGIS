@@ -87,7 +87,7 @@ class FreeimageFormat(Format):
             return self._bm.get_image_data(), self._bm.get_meta_data()
         
         def _get_meta_data(self, index):
-            if not (index is None or index == 0):
+            if index is not None and index != 0:
                 raise IndexError()
             return self._bm.get_meta_data()
     
@@ -156,10 +156,7 @@ class FreeimageBmpFormat(FreeimageFormat):
         def _open(self, flags=0, compression=False):
             # Build flags from kwargs
             flags = int(flags)
-            if compression:
-                flags |= IO_FLAGS.BMP_SAVE_RLE
-            else:
-                flags |= IO_FLAGS.BMP_DEFAULT
+            flags |= IO_FLAGS.BMP_SAVE_RLE if compression else IO_FLAGS.BMP_DEFAULT
             # Act as usual, but with modified flags
             return FreeimageFormat.Writer._open(self, flags)
         
@@ -230,7 +227,7 @@ class FreeimagePngFormat(FreeimageFormat):
             q = int(self.request.kwargs.get('quantize', False))
             if not q:
                 pass
-            elif not (im.ndim == 3 and im.shape[-1] == 3):
+            elif im.ndim != 3 or im.shape[-1] != 3:
                 raise ValueError('Can only quantize RGB images')
             elif q < 2 or q > 256:
                 raise ValueError('PNG quantize param must be 2..256')
@@ -300,9 +297,6 @@ class FreeimageJpegFormat(FreeimageFormat):
                 except KeyError:  # pragma: no cover
                     pass  # Orientation not available
                 else:  # pragma: no cover - we cannot touch all cases
-                    # www.impulseadventure.com/photo/exif-orientation.html
-                    if ori in [1, 2]:
-                        pass
                     if ori in [3, 4]:
                         im = np.rot90(im, 2)
                     if ori in [5, 6]:

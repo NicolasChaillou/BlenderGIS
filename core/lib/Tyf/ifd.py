@@ -22,7 +22,7 @@ class TiffTag(object):
 		self.key, _typ, default, self.comment = tags.get(tag)
 		self.tag = tag
 		self.name = name
-		self.type = _typ[-1] if type == None else type
+		self.type = _typ[-1] if type is None else type
 
 		if value != None: self._encode(value)
 		elif default != None: self.value = (default,) if not hasattr(default, "len") else default
@@ -96,13 +96,12 @@ class Ifd(dict):
 		for t,(ts,tname) in self._sub_ifd.items():
 			tag = tags._2tag(tag, family=ts)
 			if tag in ts:
-				if not t in self.sub_ifd:
+				if t not in self.sub_ifd:
 					self.sub_ifd[t] = Ifd(sub_ifd={}, tagname=tname)
 				self.sub_ifd[t].addtag(TiffTag(tag, value=value))
 				return
-		else:
-			tag = tags._2tag(tag)
-			dict.__setitem__(self, tag, TiffTag(tag, value=value, name=self.tagname))
+		tag = tags._2tag(tag)
+		dict.__setitem__(self, tag, TiffTag(tag, value=value, name=self.tagname))
 
 	def __getitem__(self, tag):
 		for i in self.sub_ifd.values():
@@ -118,7 +117,7 @@ class Ifd(dict):
 	def set(self, tag, typ, value):
 		for t,(ts,tname) in self._sub_ifd.items():
 			if tag in ts:
-				if not t in self.sub_ifd:
+				if t not in self.sub_ifd:
 					self.sub_ifd[t] = Ifd(sub_ifd={}, tagname=tname)
 				self.sub_ifd[t].set(tag, typ, value)
 				return
@@ -138,11 +137,9 @@ class Ifd(dict):
 			dict.__setitem__(self, tifftag.tag, tifftag)
 
 	def tags(self):
-		for v in sorted(dict.values(self), key=lambda e:e.tag):
-			yield v
+		yield from sorted(dict.values(self), key=lambda e:e.tag)
 		for i in self.sub_ifd.values():
-			for v in sorted(dict.values(i), key=lambda e:e.tag):
-				yield v
+			yield from sorted(dict.values(i), key=lambda e:e.tag)
 
 	def set_location(self, longitude, latitude, altitude=0.):
 		if 34853 not in self._sub_ifd:
@@ -175,7 +172,6 @@ class Ifd(dict):
 				return StringIO()
 			else:
 				return StringIO(opener.read())
-				print("googleapis connexion error")
 		else:
 			return StringIO()
 
